@@ -66,7 +66,7 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col h-screen bg-white dark:bg-spotter-dark-900">
       {/* Header */}
-      <header className="bg-white dark:bg-spotter-dark-900 border-b border-spotter-teal dark:border-spotter-dark-700 px-6 py-4 flex items-center justify-between">
+      <header className="bg-white dark:bg-spotter-dark-900 border-b-2 border-spotter-teal dark:border-spotter-dark-700 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Truck className="w-8 h-8 text-spotter-blue-600" />
           <div>
