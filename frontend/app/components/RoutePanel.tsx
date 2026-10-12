@@ -150,12 +150,6 @@ export default function RoutePanel({ onRouteSearch, loading, selectedRoute, onRo
             </label>
           </div>
         </div>
-
-        {/* Attribution */}
-        <div className="text-xs text-spotter-dark-500 dark:text-spotter-dark-400 space-y-1">
-          <p>Mapbox provides maps, routing, and geocoding.</p>
-          <p>Open-Meteo provides weather forecasts.</p>
-        </div>
       </div>
     </div>
   )
