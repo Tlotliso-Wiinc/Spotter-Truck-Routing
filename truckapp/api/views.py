@@ -50,7 +50,7 @@ class RoutePlanViewSet(viewsets.ViewSet):
             
             response_data = {
                 'routes': routes,
-                'recommended_route_id': recommended_route['route_id']
+                'recommended_route_id': recommended_route['route_id'] if recommended_route else None
             }
             
             response_serializer = RoutePlanSerializer(response_data)
