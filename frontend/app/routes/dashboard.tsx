@@ -49,24 +49,24 @@ export default function Dashboard() {
   }
 
   return (
-    <div className={`flex flex-col h-screen ${darkMode ? 'dark' : ''}`}>
+    <div className={`flex flex-col h-screen ${darkMode ? 'dark' : ''} bg-white dark:bg-spotter-dark-900`}>
       {/* Header */}
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
+      <header className="bg-white dark:bg-spotter-dark-900 border-b border-gray-200 dark:border-spotter-dark-700 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Truck className="w-8 h-8 text-blue-600" />
+          <Truck className="w-8 h-8 text-spotter-blue-600" />
           <div>
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">Weather-Aware Truck Routing</h1>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Safer routes. Smarter decisions.</p>
+            <p className="text-sm text-spotter-dark-600 dark:text-spotter-dark-400">Safer routes. Smarter decisions.</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
           <button
             onClick={() => setDarkMode(!darkMode)}
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+            className="p-2 rounded-lg hover:bg-spotter-blue-50 dark:hover:bg-spotter-dark-700"
           >
             {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
-          <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+          <button className="p-2 rounded-lg hover:bg-spotter-blue-50 dark:hover:bg-spotter-dark-700">
             <Settings className="w-5 h-5" />
           </button>
         </div>

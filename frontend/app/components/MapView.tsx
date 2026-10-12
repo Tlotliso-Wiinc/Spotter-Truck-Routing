@@ -148,24 +148,24 @@ export default function MapView({ routes, selectedRoute }: MapViewProps) {
       <div ref={mapContainer} className="w-full h-full" />
       
       {/* Legend */}
-      <div className="absolute bottom-4 left-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4">
+      <div className="absolute bottom-4 left-4 bg-white dark:bg-spotter-dark-900 rounded-lg shadow-lg p-4">
         <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Risk Levels</h3>
         <div className="space-y-1 text-sm">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-green-500"></div>
-            <span className="text-gray-700 dark:text-gray-300">Low</span>
+            <div className="w-3 h-3 rounded-full bg-spotter-green-500"></div>
+            <span className="text-spotter-dark-700 dark:text-spotter-dark-300">Low</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-            <span className="text-gray-700 dark:text-gray-300">Moderate</span>
+            <div className="w-3 h-3 rounded-full bg-spotter-yellow-500"></div>
+            <span className="text-spotter-dark-700 dark:text-spotter-dark-300">Moderate</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-red-500"></div>
-            <span className="text-gray-700 dark:text-gray-300">High</span>
+            <span className="text-spotter-dark-700 dark:text-spotter-dark-300">High</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-purple-600"></div>
-            <span className="text-gray-700 dark:text-gray-300">Severe</span>
+            <span className="text-spotter-dark-700 dark:text-spotter-dark-300">Severe</span>
           </div>
         </div>
       </div>
