@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Truck, Settings, Sun, Moon } from 'lucide-react'
 import RoutePanel from '../components/RoutePanel'
 import MapView from '../components/MapView'
@@ -16,10 +16,25 @@ interface RouteData {
 }
 
 export default function Dashboard() {
-  const [darkMode, setDarkMode] = useState(false)
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('darkMode')
+    if (saved !== null) {
+      return JSON.parse(saved)
+    }
+    return true // Default to dark mode
+  })
   const [selectedRoute, setSelectedRoute] = useState<string>('route_0')
   const [routes, setRoutes] = useState<RouteData[]>([])
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+    localStorage.setItem('darkMode', JSON.stringify(darkMode))
+  }, [darkMode])
 
   const handleRouteSearch = async (origin: string, destination: string, loadWeight?: number) => {
     setLoading(true)
@@ -49,9 +64,9 @@ export default function Dashboard() {
   }
 
   return (
-    <div className={`flex flex-col h-screen ${darkMode ? 'dark' : ''} bg-white dark:bg-spotter-dark-900`}>
+    <div className="flex flex-col h-screen bg-white dark:bg-spotter-dark-900">
       {/* Header */}
-      <header className="bg-white dark:bg-spotter-dark-900 border-b border-gray-200 dark:border-spotter-dark-700 px-6 py-4 flex items-center justify-between">
+      <header className="bg-white dark:bg-spotter-dark-900 border-b border-spotter-teal dark:border-spotter-dark-700 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Truck className="w-8 h-8 text-spotter-blue-600" />
           <div>
@@ -64,7 +79,7 @@ export default function Dashboard() {
             onClick={() => setDarkMode(!darkMode)}
             className="p-2 rounded-lg hover:bg-spotter-blue-50 dark:hover:bg-spotter-dark-700"
           >
-            {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            {darkMode ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
           </button>
           <button className="p-2 rounded-lg hover:bg-spotter-blue-50 dark:hover:bg-spotter-dark-700">
             <Settings className="w-5 h-5" />
@@ -87,6 +102,7 @@ export default function Dashboard() {
         <MapView
           routes={routes}
           selectedRoute={selectedRoute}
+          darkMode={darkMode}
         />
 
         {/* Right Panel - Details */}

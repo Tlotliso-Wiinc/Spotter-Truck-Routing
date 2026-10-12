@@ -4,10 +4,12 @@ export default {
     "./index.html",
     "./app/**/*.{js,ts,jsx,tsx}",
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
         spotter: {
+          teal: '#1c3a45',
           blue: {
             50: '#e6f2ff',
             100: '#b3d9ff',
@@ -30,7 +32,7 @@ export default {
             600: '#424242',
             700: '#303030',
             800: '#212121',
-            900: '#121212',
+            900: '#1c3a45',
           },
           green: {
             400: '#81c784',

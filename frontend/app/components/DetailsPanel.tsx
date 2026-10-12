@@ -14,7 +14,7 @@ export default function DetailsPanel({ routes, selectedRoute }: DetailsPanelProp
 
   if (!selectedRouteData) {
     return (
-      <div className="w-96 bg-white dark:bg-spotter-dark-900 border-l border-gray-200 dark:border-spotter-dark-700 p-6">
+      <div className="w-96 bg-white dark:bg-spotter-dark-900 border-l border-spotter-teal dark:border-spotter-dark-700 p-6">
         <p className="text-spotter-dark-500 dark:text-spotter-dark-400">Select a route to view details</p>
       </div>
     )
@@ -38,7 +38,7 @@ export default function DetailsPanel({ routes, selectedRoute }: DetailsPanelProp
   }
 
   return (
-    <div className="w-96 bg-white dark:bg-spotter-dark-900 border-l border-gray-200 dark:border-spotter-dark-700 flex flex-col overflow-y-auto">
+    <div className="w-96 bg-white dark:bg-spotter-dark-900 border-l border-spotter-teal dark:border-spotter-dark-700 flex flex-col overflow-y-auto">
       {/* Tabs */}
       <div className="flex border-b border-gray-200 dark:border-spotter-dark-700">
         {['details', 'weather', 'summary'].map((tab) => (

@@ -4,9 +4,10 @@ import mapboxgl from 'mapbox-gl'
 interface MapViewProps {
   routes: any[]
   selectedRoute: string
+  darkMode: boolean
 }
 
-export default function MapView({ routes, selectedRoute }: MapViewProps) {
+export default function MapView({ routes, selectedRoute, darkMode }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
 
@@ -15,7 +16,7 @@ export default function MapView({ routes, selectedRoute }: MapViewProps) {
 
     const map = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/light-v11',
+      style: darkMode ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11',
       center: [-98.5795, 39.8283], // Center of US
       zoom: 4,
       accessToken: import.meta.env.VITE_MAPBOX_ACCESS_TOKEN
@@ -31,6 +32,12 @@ export default function MapView({ routes, selectedRoute }: MapViewProps) {
       mapRef.current = null
     }
   }, [])
+
+  useEffect(() => {
+    if (!mapRef.current) return
+    const map = mapRef.current
+    map.setStyle(darkMode ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11')
+  }, [darkMode])
 
   useEffect(() => {
     if (!mapRef.current || routes.length === 0) return

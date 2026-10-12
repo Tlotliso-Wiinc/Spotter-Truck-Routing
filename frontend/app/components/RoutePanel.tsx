@@ -22,7 +22,7 @@ export default function RoutePanel({ onRouteSearch, loading, selectedRoute, onRo
   }
 
   return (
-    <div className="w-80 bg-white dark:bg-spotter-dark-900 border-r border-gray-200 dark:border-spotter-dark-700 flex flex-col overflow-y-auto">
+    <div className="w-80 bg-white dark:bg-spotter-dark-900 border-r border-spotter-teal dark:border-spotter-dark-700 flex flex-col overflow-y-auto">
       <div className="p-4 space-y-6">
         {/* Plan Your Route */}
         <div className="space-y-4">
