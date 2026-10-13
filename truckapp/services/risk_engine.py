@@ -1,4 +1,7 @@
+import logging
 from typing import Dict, List
+
+logger = logging.getLogger(__name__)
 
 
 class RiskEngine:
@@ -11,21 +14,26 @@ class RiskEngine:
     
     def assess_risk(self, weather: Dict, load_weight: int = None) -> str:
         """Assess risk level for a single checkpoint based on weather and load"""
+        logger.debug(f"[RISK_ENGINE] Assessing risk - Wind: {weather.get('wind_speed')} mph, Precip: {weather.get('precipitation')} mm, Temp: {weather.get('temperature')}°F, Load: {load_weight} lbs")
         wind_speed = weather.get('wind_speed', 0)
         precipitation = weather.get('precipitation', 0)
         
         # Determine precipitation type (simplified - assuming rain unless temp < 32)
         temp = weather.get('temperature', 70)
         precip_type = 'snow' if temp < 32 else 'rain'
+        logger.debug(f"[RISK_ENGINE] Precipitation type: {precip_type} (based on temp {temp}°F)")
         
         # Check wind risk
         wind_risk = self._get_condition_risk('wind', wind_speed)
+        logger.debug(f"[RISK_ENGINE] Wind risk: {wind_risk}")
         
         # Check precipitation risk
         precip_risk = self._get_condition_risk(precip_type, precipitation)
+        logger.debug(f"[RISK_ENGINE] Precipitation risk: {precip_risk}")
         
         # Apply load rules
         adjusted_risk = self._apply_load_rules(wind_risk, wind_speed, load_weight)
+        logger.debug(f"[RISK_ENGINE] Load-adjusted risk: {adjusted_risk}")
         
         # Take the highest risk level
         risk_levels = ['Low', 'Moderate', 'High', 'Severe', 'No Travel']
@@ -34,6 +42,7 @@ class RiskEngine:
         adjusted_idx = risk_levels.index(adjusted_risk) if adjusted_risk in risk_levels else 0
         
         final_risk = risk_levels[max(wind_idx, precip_idx, adjusted_idx)]
+        logger.info(f"[RISK_ENGINE] Final risk level: {final_risk}")
         return final_risk
     
     def _get_condition_risk(self, condition_type: str, value: float) -> str:
@@ -72,11 +81,13 @@ class RiskEngine:
     
     def calculate_route_risk_summary(self, checkpoints: List[Dict], load_weight: int = None) -> Dict:
         """Calculate overall risk summary for a route"""
+        logger.debug(f"[RISK_ENGINE] Calculating route risk summary for {len(checkpoints)} checkpoints")
         risk_counts = {'Low': 0, 'Moderate': 0, 'High': 0, 'Severe': 0, 'No Travel': 0}
         
         for checkpoint in checkpoints:
             risk_level = checkpoint.get('risk_level', 'Low')
             risk_counts[risk_level] = risk_counts.get(risk_level, 0) + 1
+        logger.debug(f"[RISK_ENGINE] Risk counts: {risk_counts}")
         
         total_checkpoints = len(checkpoints)
         
@@ -96,6 +107,7 @@ class RiskEngine:
             overall_risk = 'Moderate'
         else:
             overall_risk = 'Low'
+        logger.debug(f"[RISK_ENGINE] Overall risk level: {overall_risk}")
         
         # Load risk assessment
         load_risk = 'Low'
@@ -104,7 +116,9 @@ class RiskEngine:
                 load_risk = 'High'
             elif load_weight > 30000:
                 load_risk = 'Moderate'
+        logger.debug(f"[RISK_ENGINE] Load risk: {load_risk}")
         
+        logger.info(f"[RISK_ENGINE] Route risk summary - Weather: {overall_risk}, Load: {load_risk}, Overall: {overall_risk}, Avg Score: {average_risk:.2f}")
         return {
             'weather_risk': overall_risk,
             'load_risk': load_risk,
