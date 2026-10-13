@@ -458,10 +458,10 @@ export default function MapView({
       
       {/* Risk Level Legend */}
       <div className="absolute bottom-6 left-6 bg-white/95 dark:bg-spotter-dark-900/95 backdrop-blur-md rounded-xl shadow-lg border border-gray-200/80 dark:border-spotter-dark-700 p-3.5 z-10">
-        <h3 className="font-semibold text-xs text-gray-800 dark:text-gray-200 mb-2 uppercase tracking-wider">
+        <h3 className="font-semibold text-[10px] text-gray-800 dark:text-gray-200 mb-2 uppercase tracking-wider">
           Weather Risk Legend
         </h3>
-        <div className="space-y-1.5 text-xs">
+        <div className="space-y-1.5 text-[11px]">
           <div className="flex items-center gap-2.5">
             <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-xs"></div>
             <span className="text-gray-700 dark:text-gray-300 font-medium">Low (&lt;25 mph, &lt;0.10&quot; rain)</span>
