@@ -411,23 +411,23 @@ export default function LeafletMapView({
         <div className="space-y-1.5 text-[11px]">
           <div className="flex items-center gap-2.5">
             <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-xs"></div>
-            <span className="text-gray-700 dark:text-gray-300 font-medium">Low (&lt;25 mph, &lt;0.10" rain)</span>
+            <span className="text-gray-700 dark:text-gray-300 font-medium">Low (&lt;25 mph, &lt;0.10" rain, &lt;0.5" snow)</span>
           </div>
           <div className="flex items-center gap-2.5">
             <div className="w-3 h-3 rounded-full bg-amber-500 shadow-xs"></div>
-            <span className="text-gray-700 dark:text-gray-300 font-medium">Moderate (25-34 mph, 0.10-0.25")</span>
+            <span className="text-gray-700 dark:text-gray-300 font-medium">Moderate (25-34 mph, 0.10-0.25" rain, 0.5-1.0" snow)</span>
           </div>
           <div className="flex items-center gap-2.5">
             <div className="w-3 h-3 rounded-full bg-rose-500 shadow-xs"></div>
-            <span className="text-gray-700 dark:text-gray-300 font-medium">High (35-44 mph, 0.25-0.50")</span>
+            <span className="text-gray-700 dark:text-gray-300 font-medium">High (35-44 mph, 0.25-0.50" rain, 1.0-2.0" snow)</span>
           </div>
           <div className="flex items-center gap-2.5">
             <div className="w-3 h-3 rounded-full bg-purple-600 shadow-xs"></div>
-            <span className="text-gray-700 dark:text-gray-300 font-medium">Severe (45-54 mph / heavy load)</span>
+            <span className="text-gray-700 dark:text-gray-300 font-medium">Severe (45-54 mph, 0.50-1.00" rain, 2.0-3.0" snow)</span>
           </div>
           <div className="flex items-center gap-2.5">
             <div className="w-3 h-3 rounded-full bg-slate-900 dark:bg-slate-700 shadow-xs"></div>
-            <span className="text-gray-700 dark:text-gray-300 font-medium">No Travel (&ge;55 mph)</span>
+            <span className="text-gray-700 dark:text-gray-300 font-medium">No Travel (&ge;55 mph, &gt;1.00" rain, &gt;3.0" snow)</span>
           </div>
         </div>
       </div>
