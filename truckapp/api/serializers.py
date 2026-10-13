@@ -4,9 +4,9 @@ from rest_framework import serializers
 class RouteRequestSerializer(serializers.Serializer):
     origin = serializers.CharField(max_length=255)
     destination = serializers.CharField(max_length=255)
-    origin_coords = serializers.DictField()
-    destination_coords = serializers.DictField()
-    departure_time = serializers.DateTimeField(required=False)
+    origin_coords = serializers.DictField(required=False, allow_null=True)
+    destination_coords = serializers.DictField(required=False, allow_null=True)
+    departure_time = serializers.DateTimeField(required=False, allow_null=True)
     load_weight = serializers.IntegerField(required=False, allow_null=True)
 
 
@@ -32,4 +32,4 @@ class RouteSerializer(serializers.Serializer):
 
 class RoutePlanSerializer(serializers.Serializer):
     routes = RouteSerializer(many=True)
-    recommended_route_id = serializers.CharField()
+    recommended_route_id = serializers.CharField(allow_null=True)

@@ -1,4 +1,5 @@
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from .serializers import RouteRequestSerializer, RoutePlanSerializer
@@ -16,58 +17,78 @@ class RoutePlanViewSet(viewsets.ViewSet):
         serializer = RouteRequestSerializer(data=request.data)
         if serializer.is_valid():
             data = serializer.validated_data
-            logger.info(f"[ROUTE_PLAN] Request validated - Origin: {data['origin_coords']}, Destination: {data['destination_coords']}, Load Weight: {data.get('load_weight')}")
+            origin_coords = data.get('origin_coords')
+            destination_coords = data.get('destination_coords')
+            departure_time = data.get('departure_time')
+            load_weight = data.get('load_weight')
+            
+            logger.info(f"[ROUTE_PLAN] Request validated - Origin: {data.get('origin')}, Destination: {data.get('destination')}, Departure: {departure_time}, Load: {load_weight} lbs")
             
             # Initialize services
-            logger.info("[ROUTE_PLAN] Initializing services")
             route_service = RouteService()
             weather_service = WeatherService()
             risk_engine = RiskEngine()
             recommendation_engine = RecommendationEngine()
             
+            # Geocode if coords not provided
+            if not origin_coords or not origin_coords.get('lat'):
+                origin_coords = route_service.geocode(data.get('origin'))
+            if not destination_coords or not destination_coords.get('lat'):
+                destination_coords = route_service.geocode(data.get('destination'))
+            
+            if not origin_coords or not destination_coords:
+                logger.error("[ROUTE_PLAN] Could not resolve coordinates for origin or destination")
+                return Response(
+                    {'error': 'Could not resolve geographic coordinates for the given origin or destination.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
             # Generate routes
             logger.info("[ROUTE_PLAN] Generating routes via RouteService")
             routes = route_service.generate_routes(
-                origin_coords=data['origin_coords'],
-                destination_coords=data['destination_coords'],
-                departure_time=data.get('departure_time')
+                origin_coords=origin_coords,
+                destination_coords=destination_coords,
+                departure_time=departure_time
             )
-            logger.info(f"[ROUTE_PLAN] Generated {len(routes)} routes")
             
-            # Add weather data and risk assessment to each route
-            logger.info("[ROUTE_PLAN] Processing weather and risk for each route")
-            for idx, route in enumerate(routes):
-                logger.info(f"[ROUTE_PLAN] Processing route {idx + 1}/{len(routes)}: {route['name']}")
-                checkpoints = route_service.generate_checkpoints(route)
-                logger.info(f"[ROUTE_PLAN] Generated {len(checkpoints)} checkpoints for route {route['name']}")
-                for checkpoint in checkpoints:
-                    logger.debug(f"[ROUTE_PLAN] Fetching weather for checkpoint at {checkpoint['coords']}")
-                    weather = weather_service.get_weather_at_checkpoint(
-                        checkpoint['coords'],
-                        checkpoint['eta']
-                    )
-                    checkpoint['weather'] = weather
-                    logger.debug(f"[ROUTE_PLAN] Weather data received - Temp: {weather.get('temperature')}, Wind: {weather.get('wind_speed')}, Precip: {weather.get('precipitation')}")
-                    checkpoint['risk_level'] = risk_engine.assess_risk(
-                        weather,
-                        data.get('load_weight')
-                    )
-                    logger.debug(f"[ROUTE_PLAN] Risk level assessed: {checkpoint['risk_level']}")
-                route['checkpoints'] = checkpoints
-                route['risk_summary'] = risk_engine.calculate_route_risk_summary(
-                    checkpoints,
-                    data.get('load_weight')
+            if not routes:
+                logger.error("[ROUTE_PLAN] No routes could be generated")
+                return Response(
+                    {'error': 'No routes could be found between the specified locations.'},
+                    status=status.HTTP_404_NOT_FOUND
                 )
-                logger.info(f"[ROUTE_PLAN] Route {route['name']} risk summary - Overall: {route['risk_summary']['overall_risk']}, Avg Score: {route['risk_summary']['average_risk_score']:.2f}")
+            
+            def process_checkpoint(checkpoint):
+                weather = weather_service.get_weather_at_checkpoint(
+                    checkpoint['coords'],
+                    checkpoint['eta']
+                )
+                checkpoint['weather'] = weather
+                checkpoint['risk_level'] = risk_engine.assess_risk(
+                    weather,
+                    load_weight
+                )
+                return checkpoint
+            
+            logger.info(f"[ROUTE_PLAN] Processing weather and risk concurrently for {len(routes)} routes")
+            with ThreadPoolExecutor(max_workers=12) as executor:
+                for idx, route in enumerate(routes):
+                    checkpoints = route_service.generate_checkpoints(route, departure_time=departure_time)
+                    # Process checkpoints concurrently
+                    list(executor.map(process_checkpoint, checkpoints))
+                    route['checkpoints'] = checkpoints
+                    route['risk_summary'] = risk_engine.calculate_route_risk_summary(
+                        checkpoints,
+                        load_weight
+                    )
+                    logger.info(f"[ROUTE_PLAN] Route {route.get('name')} risk summary: {route['risk_summary']['overall_risk']}")
             
             # Recommend best route
-            logger.info("[ROUTE_PLAN] Recommending best route via RecommendationEngine")
             recommended_route = recommendation_engine.recommend_route(routes)
-            logger.info(f"[ROUTE_PLAN] Recommended route: {recommended_route['name'] if recommended_route else 'None'}")
             
             response_data = {
                 'routes': routes,
-                'recommended_route_id': recommended_route['route_id'] if recommended_route else None
+                'recommended_route_id': recommended_route['route_id'] if recommended_route else (routes[0]['route_id'] if routes else None)
             }
             
             logger.info("[ROUTE_PLAN] Route plan completed successfully")

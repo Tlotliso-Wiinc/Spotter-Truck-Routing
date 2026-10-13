@@ -5,20 +5,13 @@ logger = logging.getLogger(__name__)
 
 
 class RiskEngine:
-    # Risk thresholds from spec
-    RISK_THRESHOLDS = {
-        'wind': {'low': 25, 'moderate': 34, 'high': 44, 'severe': 54, 'no_travel': 55},
-        'rain': {'low': 0.10, 'moderate': 0.25, 'high': 0.50, 'severe': 1.00, 'no_travel': 1.01},
-        'snow': {'low': 0.5, 'moderate': 1.0, 'high': 2.0, 'severe': 3.0, 'no_travel': 3.1}
-    }
-    
     def assess_risk(self, weather: Dict, load_weight: int = None) -> str:
         """Assess risk level for a single checkpoint based on weather and load"""
-        logger.debug(f"[RISK_ENGINE] Assessing risk - Wind: {weather.get('wind_speed')} mph, Precip: {weather.get('precipitation')} mm, Temp: {weather.get('temperature')}°F, Load: {load_weight} lbs")
+        logger.debug(f"[RISK_ENGINE] Assessing risk - Wind: {weather.get('wind_speed')} mph, Precip: {weather.get('precipitation')} in, Temp: {weather.get('temperature')}°F, Load: {load_weight} lbs")
         wind_speed = weather.get('wind_speed', 0)
         precipitation = weather.get('precipitation', 0)
         
-        # Determine precipitation type (simplified - assuming rain unless temp < 32)
+        # Determine precipitation type (simplified - assuming rain unless temp < 32°F)
         temp = weather.get('temperature', 70)
         precip_type = 'snow' if temp < 32 else 'rain'
         logger.debug(f"[RISK_ENGINE] Precipitation type: {precip_type} (based on temp {temp}°F)")
@@ -46,36 +39,63 @@ class RiskEngine:
         return final_risk
     
     def _get_condition_risk(self, condition_type: str, value: float) -> str:
-        """Get risk level for a specific condition"""
-        thresholds = self.RISK_THRESHOLDS[condition_type]
-        
-        if value >= thresholds['no_travel']:
-            return 'No Travel'
-        elif value >= thresholds['severe']:
-            return 'Severe'
-        elif value >= thresholds['high']:
-            return 'High'
-        elif value >= thresholds['moderate']:
-            return 'Moderate'
-        else:
-            return 'Low'
+        """
+        Get risk level for a specific condition according to spec.md:
+        Condition   Low         Moderate    High        Severe      No Travel
+        Wind        <25 mph     25–34       35–44       45–54       ≥55 mph
+        Rain        <0.10 in/hr 0.10–0.25   0.25–0.50   0.50–1.00   >1.00
+        Snow        <0.5 in/hr  0.5–1.0     1.0–2.0     2.0–3.0     >3.0
+        """
+        if condition_type == 'wind':
+            if value >= 55:
+                return 'No Travel'
+            elif value >= 45:
+                return 'Severe'
+            elif value >= 35:
+                return 'High'
+            elif value >= 25:
+                return 'Moderate'
+            else:
+                return 'Low'
+        elif condition_type == 'rain':
+            if value > 1.00:
+                return 'No Travel'
+            elif value >= 0.50:
+                return 'Severe'
+            elif value >= 0.25:
+                return 'High'
+            elif value >= 0.10:
+                return 'Moderate'
+            else:
+                return 'Low'
+        elif condition_type == 'snow':
+            if value > 3.0:
+                return 'No Travel'
+            elif value >= 2.0:
+                return 'Severe'
+            elif value >= 1.0:
+                return 'High'
+            elif value >= 0.5:
+                return 'Moderate'
+            else:
+                return 'Low'
+        return 'Low'
     
     def _apply_load_rules(self, current_risk: str, wind_speed: float, load_weight: int = None) -> str:
-        """Apply load-specific risk rules from spec"""
-        if load_weight is None:
-            return current_risk
-        
-        # Rule: ≥55 mph → No Travel for any load
+        """
+        Apply load-specific risk rules from spec.md:
+        • ≥55 mph → No Travel for any load
+        • 45–54 mph + >30,000 lb → No Travel
+        • 35–44 mph + >40,000 lb → Severe
+        """
         if wind_speed >= 55:
             return 'No Travel'
         
-        # Rule: 45–54 mph + >30,000 lb → No Travel
-        if 45 <= wind_speed <= 54 and load_weight > 30000:
-            return 'No Travel'
-        
-        # Rule: 35–44 mph + >40,000 lb → Severe
-        if 35 <= wind_speed <= 44 and load_weight > 40000:
-            return 'Severe'
+        if load_weight is not None:
+            if 45 <= wind_speed <= 54 and load_weight > 30000:
+                return 'No Travel'
+            if 35 <= wind_speed <= 44 and load_weight > 40000:
+                return 'Severe'
         
         return current_risk
     
@@ -111,7 +131,7 @@ class RiskEngine:
         
         # Load risk assessment
         load_risk = 'Low'
-        if load_weight:
+        if load_weight is not None:
             if load_weight > 50000:
                 load_risk = 'High'
             elif load_weight > 30000:
