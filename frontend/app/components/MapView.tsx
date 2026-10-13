@@ -544,7 +544,7 @@ export default function MapView({
 
       {/* 0-48 Hour Forecast Corridor Slider */}
       {routes.length > 0 && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-spotter-dark-900/95 backdrop-blur-md rounded-2xl shadow-xl border border-gray-200 dark:border-spotter-dark-700 px-5 py-3.5 z-10 w-[460px] max-w-[92vw]">
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-spotter-dark-900/95 backdrop-blur-md rounded-2xl shadow-xl border border-gray-200 dark:border-spotter-dark-700 px-5 py-3.5 z-10 w-[460px] max-w-[92vw]">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-spotter-blue-600" />
@@ -625,7 +625,7 @@ export default function MapView({
       )}
 
       {/* Risk Level Legend */}
-      <div className="absolute bottom-6 left-6 bg-white/95 dark:bg-spotter-dark-900/95 backdrop-blur-md rounded-xl shadow-lg border border-gray-200/80 dark:border-spotter-dark-700 p-3.5 z-10">
+      <div className="absolute top-4 left-6 bg-white/95 dark:bg-spotter-dark-900/95 backdrop-blur-md rounded-xl shadow-lg border border-gray-200/80 dark:border-spotter-dark-700 p-3.5 z-10">
         <h3 className="font-semibold text-[10px] text-gray-800 dark:text-gray-200 mb-2 uppercase tracking-wider">
           Weather Risk Legend
         </h3>
