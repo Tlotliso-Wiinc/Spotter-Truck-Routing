@@ -22,7 +22,7 @@ export default function Dashboard() {
     if (saved !== null) {
       return JSON.parse(saved)
     }
-    return true // Default to dark mode
+    return false // Default to light mode
   })
   const [selectedRoute, setSelectedRoute] = useState<string>('route_0')
   const [routes, setRoutes] = useState<RouteData[]>([])
