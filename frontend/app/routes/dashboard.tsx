@@ -126,13 +126,13 @@ export default function Dashboard() {
   }
 
   // Auto-search default route on initial load if no routes
-  useEffect(() => {
-    if (routes.length === 0) {
-      const now = new Date()
-      now.setMinutes(now.getMinutes() - now.getTimezoneOffset())
-      handleRouteSearch('Denver, CO, USA', 'Chicago, IL, USA', now.toISOString().slice(0, 16), 30000)
-    }
-  }, [])
+  // useEffect(() => {
+  //   if (routes.length === 0) {
+  //     const now = new Date()
+  //     now.setMinutes(now.getMinutes() - now.getTimezoneOffset())
+  //     handleRouteSearch('Denver, CO, USA', 'Chicago, IL, USA', now.toISOString().slice(0, 16), 30000)
+  //   }
+  // }, [])
 
   return (
     <div className="flex flex-col h-screen bg-white dark:bg-spotter-dark-900">

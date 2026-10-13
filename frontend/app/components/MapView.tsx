@@ -3,6 +3,22 @@ import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { Play, Pause, RotateCcw, Clock } from 'lucide-react'
 
+// Probe for a usable WebGL context before Mapbox GL tries (and throws) on its own.
+// A fresh canvas is used so we don't consume the map's own context.
+function isWebGLAvailable(): boolean {
+  try {
+    const canvas = document.createElement('canvas')
+    return !!(
+      window.WebGLRenderingContext &&
+      (canvas.getContext('webgl2') ||
+        canvas.getContext('webgl') ||
+        canvas.getContext('experimental-webgl'))
+    )
+  } catch {
+    return false
+  }
+}
+
 interface MapViewProps {
   routes: any[]
   selectedRoute: string
@@ -32,34 +48,81 @@ export default function MapView({
   // 0..47 = Fixed forecast hour offset across entire route
   const [forecastHour, setForecastHour] = useState<number | null>(null)
   const [isPlaying, setIsPlaying] = useState<boolean>(false)
+  const [mapError, setMapError] = useState<boolean>(false)
+  // Bumping this remounts the map (used to recover from a lost WebGL context).
+  const [mapVersion, setMapVersion] = useState<number>(0)
 
   // Initialize Map
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return
 
+    // Bail out early (with a friendly fallback) instead of letting Mapbox throw
+    // when the browser can't provide a WebGL context at all.
+    if (!isWebGLAvailable()) {
+      console.error('WebGL is not available; cannot initialize Mapbox map.')
+      setMapError(true)
+      return
+    }
+
     const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN?.trim() || ''
     mapboxgl.accessToken = token
 
-    const map = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: darkMode ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11',
-      center: [-98.5795, 39.8283], // Center of US
-      zoom: 4
-    })
+    let map: mapboxgl.Map | null = null
 
-    map.addControl(new mapboxgl.NavigationControl(), 'top-right')
-    map.addControl(new mapboxgl.FullscreenControl(), 'top-right')
+    // If the browser drops the WebGL context (driver reset, context limit, etc.),
+    // remount the map instead of leaving a dead canvas behind.
+    const onContextLost = (event: Event) => {
+      event.preventDefault()
+      console.warn('WebGL context lost; re-initializing map.')
+      setMapVersion(v => v + 1)
+    }
 
-    mapRef.current = map
+    try {
+      map = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: darkMode ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11',
+        center: [-98.5795, 39.8283], // Center of US
+        zoom: 4
+      })
+
+      map.addControl(new mapboxgl.NavigationControl(), 'top-right')
+      map.addControl(new mapboxgl.FullscreenControl(), 'top-right')
+
+      map.getCanvas().addEventListener('webglcontextlost', onContextLost)
+
+      mapRef.current = map
+      setMapError(false)
+    } catch (error) {
+      console.error('Failed to initialize Mapbox map:', error)
+      setMapError(true)
+    }
 
     return () => {
       markersRef.current.forEach(m => m.remove())
       markersRef.current = []
-      if (popupRef.current) popupRef.current.remove()
-      map.remove()
+      if (popupRef.current) {
+        popupRef.current.remove()
+        popupRef.current = null
+      }
+      if (map) {
+        try {
+          map.getCanvas().removeEventListener('webglcontextlost', onContextLost)
+        } catch {
+          // canvas already detached
+        }
+        try {
+          map.remove()
+        } catch (error) {
+          console.warn('Error while removing Mapbox map:', error)
+        }
+      }
       mapRef.current = null
+      // Ensure no stale canvas is left behind for the next map instance.
+      if (mapContainer.current) {
+        mapContainer.current.innerHTML = ''
+      }
     }
-  }, [])
+  }, [mapVersion])
 
   // Handle Dark Mode Style Change
   useEffect(() => {
@@ -230,7 +293,7 @@ export default function MapView({
           'line-cap': 'round'
         },
         paint: {
-          'line-color': darkMode ? '#94a3b8' : '#64748b',
+          'line-color': darkMode ? '#06b6d4' : '#0891b2',
           'line-width': 4,
           'line-opacity': 0.55
         }
@@ -541,6 +604,24 @@ export default function MapView({
   return (
     <div className="flex-1 relative h-full w-full">
       <div ref={mapContainer} className="w-full h-full" />
+      
+      {/* WebGL Error Fallback */}
+      {mapError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-spotter-dark-800 z-20">
+          <div className="text-center p-8 max-w-md">
+            <div className="text-6xl mb-4">🗺️</div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+              Map Unavailable
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+              WebGL is not supported in your browser or environment. The interactive map requires hardware acceleration to display routes and weather data.
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Please try using a modern browser with WebGL enabled, or check your graphics driver settings.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* 0-48 Hour Forecast Corridor Slider */}
       {routes.length > 0 && (

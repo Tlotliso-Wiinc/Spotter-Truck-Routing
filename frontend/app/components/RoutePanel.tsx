@@ -28,8 +28,8 @@ export default function RoutePanel({
   showAlternatives = true,
   onToggleAlternatives
 }: RoutePanelProps) {
-  const [origin, setOrigin] = useState('Denver, CO, USA')
-  const [destination, setDestination] = useState('Chicago, IL, USA')
+  const [origin, setOrigin] = useState('')
+  const [destination, setDestination] = useState('')
   
   // Format current local datetime to YYYY-MM-DDTHH:mm
   const getInitialDeparture = () => {
@@ -39,7 +39,7 @@ export default function RoutePanel({
   }
 
   const [departureTime, setDepartureTime] = useState(getInitialDeparture())
-  const [loadWeight, setLoadWeight] = useState<string>('30000')
+  const [loadWeight, setLoadWeight] = useState('')
 
   const handleSearch = () => {
     const numericWeight = loadWeight !== '' ? Number(loadWeight) : undefined
