@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MapPin, Truck, Layers } from 'lucide-react'
+import { MapPin, Truck, Layers, Loader2 } from 'lucide-react'
 
 interface RoutePanelProps {
   onRouteSearch: (origin: string, destination: string, loadWeight?: number) => void
@@ -69,9 +69,16 @@ export default function RoutePanel({ onRouteSearch, loading, selectedRoute, onRo
             <button
               onClick={handleSearch}
               disabled={loading}
-              className="w-full bg-spotter-blue-600 hover:bg-spotter-blue-700 disabled:bg-spotter-dark-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+              className="w-full bg-spotter-blue-600 hover:bg-spotter-blue-700 disabled:bg-spotter-dark-400 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
             >
-              {loading ? 'Finding Routes...' : 'Find Safer Routes'}
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Finding Routes...
+                </>
+              ) : (
+                'Find Safer Routes'
+              )}
             </button>
           </div>
         </div>
