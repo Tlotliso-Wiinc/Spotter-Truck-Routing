@@ -165,12 +165,12 @@ export default function Dashboard() {
           >
             {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
-          <button
+          {/* <button
             className="p-2 rounded-lg text-spotter-dark-600 dark:text-spotter-dark-300 hover:bg-gray-100 dark:hover:bg-spotter-dark-800 transition-colors"
             title="Settings"
           >
             <Settings className="w-5 h-5" />
-          </button>
+          </button> */}
         </div>
       </header>
 
