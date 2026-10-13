@@ -74,10 +74,10 @@ export default function RoutePanel({ onRouteSearch, loading, selectedRoute, onRo
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Finding Routes...
+                  Finding routes...
                 </>
               ) : (
-                'Find Safer Routes'
+                'Find routes'
               )}
             </button>
           </div>
