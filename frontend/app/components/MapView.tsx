@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { Play, Pause, RotateCcw, Clock } from 'lucide-react'
+import LeafletMapView from './LeafletMapView'
 
 // Probe for a usable WebGL context before Mapbox GL tries (and throws) on its own.
 // A fresh canvas is used so we don't consume the map's own context.
@@ -603,136 +604,133 @@ export default function MapView({
 
   return (
     <div className="flex-1 relative h-full w-full">
-      <div ref={mapContainer} className="w-full h-full" />
-      
-      {/* WebGL Error Fallback */}
-      {mapError && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-spotter-dark-800 z-20">
-          <div className="text-center p-8 max-w-md">
-            <div className="text-6xl mb-4">🗺️</div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-              Map Unavailable
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-              WebGL is not supported in your browser or environment. The interactive map requires hardware acceleration to display routes and weather data.
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Please try using a modern browser with WebGL enabled, or check your graphics driver settings.
-            </p>
-          </div>
-        </div>
-      )}
+      {/* Use Leaflet fallback when WebGL is unavailable */}
+      {mapError ? (
+        <LeafletMapView
+          routes={routes}
+          selectedRoute={selectedRoute}
+          onSelectRoute={onSelectRoute}
+          darkMode={darkMode}
+          showWeatherOverlay={showWeatherOverlay}
+          showCheckpoints={showCheckpoints}
+          showAlternatives={showAlternatives}
+        />
+      ) : (
+        <>
+          <div ref={mapContainer} className="w-full h-full" />
 
-      {/* 0-48 Hour Forecast Corridor Slider */}
-      {routes.length > 0 && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-spotter-dark-900/95 backdrop-blur-md rounded-2xl shadow-xl border border-gray-200 dark:border-spotter-dark-700 px-5 py-3.5 z-10 w-[460px] max-w-[92vw]">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-spotter-blue-600" />
-              <span className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">
-                0–48h Weather Forecast Slider
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setForecastHour(null)}
-                className={`text-[11px] px-2.5 py-0.5 rounded-full font-medium transition-colors ${
-                  forecastHour === null
-                    ? 'bg-spotter-blue-600 text-white shadow-xs'
-                    : 'bg-gray-100 dark:bg-spotter-dark-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
-                }`}
-                title="Reset to dynamic arrival ETAs along route"
-              >
-                Route ETAs
-              </button>
-              {forecastHour !== null && (
+          {/* 0-48 Hour Forecast Corridor Slider */}
+          {routes.length > 0 && (
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-spotter-dark-900/95 backdrop-blur-md rounded-2xl shadow-xl border border-gray-200 dark:border-spotter-dark-700 px-5 py-3.5 z-10 w-[460px] max-w-[92vw]">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-spotter-blue-600" />
+                  <span className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+                    0–48h Weather Forecast Slider
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setForecastHour(null)}
+                    className={`text-[11px] px-2.5 py-0.5 rounded-full font-medium transition-colors ${
+                      forecastHour === null
+                        ? 'bg-spotter-blue-600 text-white shadow-xs'
+                        : 'bg-gray-100 dark:bg-spotter-dark-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
+                    }`}
+                    title="Reset to dynamic arrival ETAs along route"
+                  >
+                    Route ETAs
+                  </button>
+                  {forecastHour !== null && (
+                    <button
+                      onClick={() => setForecastHour(null)}
+                      className="p-1 text-gray-500 hover:text-gray-800 dark:hover:text-white transition-colors"
+                      title="Reset to ETA"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Timestamp readout */}
+              <div className="text-[11px] font-medium text-spotter-dark-600 dark:text-spotter-dark-300 mb-2 flex items-center justify-between">
+                <span className="truncate">{getTimelineDateLabel()}</span>
+                {forecastHour !== null && (
+                  <span className="text-spotter-blue-600 font-semibold text-[11px] flex-shrink-0">
+                    +{forecastHour} hrs
+                  </span>
+                )}
+              </div>
+
+              {/* Slider and Play/Pause Controls */}
+              <div className="flex items-center gap-3">
                 <button
-                  onClick={() => setForecastHour(null)}
-                  className="p-1 text-gray-500 hover:text-gray-800 dark:hover:text-white transition-colors"
-                  title="Reset to ETA"
+                  onClick={() => {
+                    if (forecastHour === null) setForecastHour(0)
+                    setIsPlaying(!isPlaying)
+                  }}
+                  className="p-2 rounded-lg bg-spotter-blue-600 hover:bg-spotter-blue-700 text-white shadow-xs transition-colors flex-shrink-0"
+                  title={isPlaying ? 'Pause timeline' : 'Play 48h timeline'}
                 >
-                  <RotateCcw className="w-3.5 h-3.5" />
+                  {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
                 </button>
-              )}
+
+                <div className="flex-1 flex flex-col justify-center">
+                  <input
+                    type="range"
+                    min="0"
+                    max="47"
+                    step="1"
+                    value={forecastHour ?? 0}
+                    onChange={(e) => {
+                      setIsPlaying(false)
+                      setForecastHour(parseInt(e.target.value))
+                    }}
+                    className="w-full h-1.5 bg-gray-200 dark:bg-spotter-dark-700 rounded-lg appearance-none cursor-pointer accent-spotter-blue-600"
+                  />
+                  <div className="flex justify-between text-[10px] text-gray-600 dark:text-gray-400 mt-1 font-medium">
+                    <span>0h (Now)</span>
+                    <span>+12h</span>
+                    <span>+24h</span>
+                    <span>+36h</span>
+                    <span>+48h</span>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Timestamp readout */}
-          <div className="text-[11px] font-medium text-spotter-dark-600 dark:text-spotter-dark-300 mb-2 flex items-center justify-between">
-            <span className="truncate">{getTimelineDateLabel()}</span>
-            {forecastHour !== null && (
-              <span className="text-spotter-blue-600 font-semibold text-[11px] flex-shrink-0">
-                +{forecastHour} hrs
-              </span>
-            )}
-          </div>
-
-          {/* Slider and Play/Pause Controls */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => {
-                if (forecastHour === null) setForecastHour(0)
-                setIsPlaying(!isPlaying)
-              }}
-              className="p-2 rounded-lg bg-spotter-blue-600 hover:bg-spotter-blue-700 text-white shadow-xs transition-colors flex-shrink-0"
-              title={isPlaying ? 'Pause timeline' : 'Play 48h timeline'}
-            >
-              {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-            </button>
-
-            <div className="flex-1 flex flex-col justify-center">
-              <input
-                type="range"
-                min="0"
-                max="47"
-                step="1"
-                value={forecastHour ?? 0}
-                onChange={(e) => {
-                  setIsPlaying(false)
-                  setForecastHour(parseInt(e.target.value))
-                }}
-                className="w-full h-1.5 bg-gray-200 dark:bg-spotter-dark-700 rounded-lg appearance-none cursor-pointer accent-spotter-blue-600"
-              />
-              <div className="flex justify-between text-[10px] text-gray-600 dark:text-gray-400 mt-1 font-medium">
-                <span>0h (Now)</span>
-                <span>+12h</span>
-                <span>+24h</span>
-                <span>+36h</span>
-                <span>+48h</span>
+          {/* Risk Level Legend */}
+          <div className="absolute top-4 left-6 bg-white/95 dark:bg-spotter-dark-900/95 backdrop-blur-md rounded-xl shadow-lg border border-gray-200/80 dark:border-spotter-dark-700 p-3.5 z-10">
+            <h3 className="font-semibold text-[10px] text-gray-800 dark:text-gray-200 mb-2 uppercase tracking-wider">
+              Weather Risk Legend
+            </h3>
+            <div className="space-y-1.5 text-[11px]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-xs"></div>
+                <span className="text-gray-700 dark:text-gray-300 font-medium">Low (&lt;25 mph, &lt;0.10&quot; rain)</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <div className="w-3 h-3 rounded-full bg-amber-500 shadow-xs"></div>
+                <span className="text-gray-700 dark:text-gray-300 font-medium">Moderate (25-34 mph, 0.10-0.25&quot;)</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <div className="w-3 h-3 rounded-full bg-rose-500 shadow-xs"></div>
+                <span className="text-gray-700 dark:text-gray-300 font-medium">High (35-44 mph, 0.25-0.50&quot;)</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <div className="w-3 h-3 rounded-full bg-purple-600 shadow-xs"></div>
+                <span className="text-gray-700 dark:text-gray-300 font-medium">Severe (45-54 mph / heavy load)</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <div className="w-3 h-3 rounded-full bg-slate-900 dark:bg-slate-700 shadow-xs"></div>
+                <span className="text-gray-700 dark:text-gray-300 font-medium">No Travel (&ge;55 mph)</span>
               </div>
             </div>
           </div>
-        </div>
+        </>
       )}
-
-      {/* Risk Level Legend */}
-      <div className="absolute top-4 left-6 bg-white/95 dark:bg-spotter-dark-900/95 backdrop-blur-md rounded-xl shadow-lg border border-gray-200/80 dark:border-spotter-dark-700 p-3.5 z-10">
-        <h3 className="font-semibold text-[10px] text-gray-800 dark:text-gray-200 mb-2 uppercase tracking-wider">
-          Weather Risk Legend
-        </h3>
-        <div className="space-y-1.5 text-[11px]">
-          <div className="flex items-center gap-2.5">
-            <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-xs"></div>
-            <span className="text-gray-700 dark:text-gray-300 font-medium">Low (&lt;25 mph, &lt;0.10&quot; rain)</span>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-3 h-3 rounded-full bg-amber-500 shadow-xs"></div>
-            <span className="text-gray-700 dark:text-gray-300 font-medium">Moderate (25-34 mph, 0.10-0.25&quot;)</span>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-3 h-3 rounded-full bg-rose-500 shadow-xs"></div>
-            <span className="text-gray-700 dark:text-gray-300 font-medium">High (35-44 mph, 0.25-0.50&quot;)</span>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-3 h-3 rounded-full bg-purple-600 shadow-xs"></div>
-            <span className="text-gray-700 dark:text-gray-300 font-medium">Severe (45-54 mph / heavy load)</span>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-3 h-3 rounded-full bg-slate-900 dark:bg-slate-700 shadow-xs"></div>
-            <span className="text-gray-700 dark:text-gray-300 font-medium">No Travel (&ge;55 mph)</span>
-          </div>
-        </div>
-      </div>
     </div>
   )
 }

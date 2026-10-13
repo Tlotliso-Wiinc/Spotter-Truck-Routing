@@ -9,21 +9,24 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@mapbox/mapbox-sdk": "^0.16.0",
+    "date-fns": "^3.6.0",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^0.424.0",
+    "mapbox-gl": "^3.4.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "mapbox-gl": "^3.4.0",
-    "@mapbox/mapbox-sdk": "^0.16.0",
-    "lucide-react": "^0.424.0",
-    "date-fns": "^3.6.0"
+    "react-leaflet": "^4.2.1"
   },
   "devDependencies": {
+    "@types/leaflet": "^1.9.22",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
-    "typescript": "^5.5.3",
-    "vite": "^5.4.2",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.41",
-    "tailwindcss": "^3.4.9"
+    "tailwindcss": "^3.4.9",
+    "typescript": "^5.5.3",
+    "vite": "^5.4.2"
   }
 }
