@@ -216,7 +216,7 @@ export default function RoutePanel({
                 onChange={(e) => onToggleWeatherOverlay?.(e.target.checked)}
                 className="w-4 h-4 text-spotter-blue-600 rounded"
               />
-              <span className="text-spotter-dark-700 dark:text-spotter-dark-300">Weather Risk Overlay</span>
+              <span className="text-spotter-dark-700 dark:text-spotter-dark-300">Weather Risk Overlay/Heatmap</span>
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
               <input
