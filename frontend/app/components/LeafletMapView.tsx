@@ -45,8 +45,13 @@ export default function LeafletMapView({
     const map = L.map(mapContainer.current, {
       center: [39.8283, -98.5795], // Center of US
       zoom: 4,
-      zoomControl: true
+      zoomControl: false // Disable default, we'll add it with custom position
     })
+
+    // Add zoom control to top right
+    L.control.zoom({
+      position: 'topright'
+    }).addTo(map)
 
     // Use OpenStreetMap tiles (free, no API key required)
     const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -423,7 +428,7 @@ export default function LeafletMapView({
       </div>
 
       {/* Fallback Notice */}
-      <div className="absolute top-4 right-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-lg px-3 py-2 z-[1000]">
+      <div className="absolute top-4 right-20 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-lg px-3 py-2 z-[1000]">
         <p className="text-[10px] text-amber-800 dark:text-amber-300 font-medium">
           Using Leaflet fallback (WebGL unavailable)
         </p>
