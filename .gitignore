@@ -39,8 +39,3 @@ frontend/node_modules/
 frontend/build/
 frontend/.env.local
 frontend/.env.production.local
-
-# Project documentation
-spec.md
-weather_aware_routing_architecture.png
-Weather_Aware_Truck_Routing_Dashboard_UI.png
