@@ -185,7 +185,11 @@ Response:
 
 ## Deployment
 
-This application is configured for deployment on Railway using the included Procfile and runtime.txt.
+This application is configured for deployment on Railway using the included Dockerfile.
+
+### Deploying on Railway
+
+The Dockerfile builds the React frontend, then installs the Django app and runs `collectstatic`, so Django serves the built bundle at `/` and `/assets/*`. Set `VITE_GOOGLE_MAPS_API_KEY` and `VITE_MAPBOX_ACCESS_TOKEN` as Railway service variables. These are build-time values that Vite inlines into the bundle, so redeploy after changing them.
 
 ## License
 
