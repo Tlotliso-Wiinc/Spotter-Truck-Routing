@@ -53,10 +53,11 @@ export default function LeafletMapView({
       position: 'topright'
     }).addTo(map)
 
-    // Use OpenStreetMap tiles (free, no API key required)
-    const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
-      maxZoom: 19
+    // Use CartoDB Voyager tiles with API key
+    const cartoApiKey = import.meta.env.VITE_CARTO_API_KEY
+    const tileLayer = L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=${cartoApiKey}`, {
+      attribution: '© OpenStreetMap contributors © CARTO',
+      maxZoom: 20
     })
 
     tileLayer.addTo(map)
