@@ -47,7 +47,7 @@ export default function RoutePanel({
   }
 
   return (
-    <div className="w-80 max-w-80 min-w-0 bg-white dark:bg-spotter-dark-900 border-r border-spotter-teal dark:border-spotter-dark-700 flex flex-col overflow-y-auto overflow-x-hidden">
+    <div className="w-72 max-w-72 min-w-0 bg-white dark:bg-spotter-dark-900 border-r border-spotter-teal dark:border-spotter-dark-700 flex flex-col overflow-y-auto overflow-x-hidden">
       <div className="p-4 space-y-6">
         {/* Plan Your Route */}
         <div className="space-y-4">

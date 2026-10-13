@@ -13,7 +13,7 @@ export default function DetailsPanel({ routes, selectedRoute }: DetailsPanelProp
 
   if (!selectedRouteData) {
     return (
-      <div className="w-96 max-w-96 min-w-0 bg-white dark:bg-spotter-dark-900 border-l border-spotter-teal dark:border-spotter-dark-700 p-6 flex items-center justify-center text-center overflow-x-hidden">
+      <div className="w-72 max-w-72 min-w-0 bg-white dark:bg-spotter-dark-900 border-l border-spotter-teal dark:border-spotter-dark-700 p-6 flex items-center justify-center text-center overflow-x-hidden">
         <p className="text-sm text-spotter-dark-500 dark:text-spotter-dark-400">
           Search for a route or select an option to view details
         </p>
@@ -70,7 +70,7 @@ export default function DetailsPanel({ routes, selectedRoute }: DetailsPanelProp
   const riskCounts = selectedRouteData.risk_summary?.risk_counts || {}
 
   return (
-    <div className="w-96 max-w-96 min-w-0 bg-white dark:bg-spotter-dark-900 border-l border-spotter-teal dark:border-spotter-dark-700 flex flex-col overflow-y-auto overflow-x-hidden">
+    <div className="w-72 max-w-72 min-w-0 bg-white dark:bg-spotter-dark-900 border-l border-spotter-teal dark:border-spotter-dark-700 flex flex-col overflow-y-auto overflow-x-hidden">
       {/* Tabs */}
       <div className="flex border-b border-gray-200 dark:border-spotter-dark-700">
         {(['details', 'weather', 'summary'] as const).map((tab) => (
