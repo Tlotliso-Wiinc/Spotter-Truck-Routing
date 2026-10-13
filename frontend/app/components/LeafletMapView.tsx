@@ -313,7 +313,7 @@ export default function LeafletMapView({
 
       {/* 0-48 Hour Forecast Corridor Slider */}
       {routes.length > 0 && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-spotter-dark-900/95 backdrop-blur-md rounded-2xl shadow-xl border border-gray-200 dark:border-spotter-dark-700 px-5 py-3.5 z-10 w-[460px] max-w-[92vw]">
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-spotter-dark-900/95 backdrop-blur-md rounded-2xl shadow-xl border border-gray-200 dark:border-spotter-dark-700 px-5 py-3.5 z-[1000] w-[460px] max-w-[92vw]">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-spotter-blue-600" />
@@ -394,7 +394,7 @@ export default function LeafletMapView({
       )}
 
       {/* Risk Level Legend */}
-      <div className="absolute top-4 left-6 bg-white/95 dark:bg-spotter-dark-900/95 backdrop-blur-md rounded-xl shadow-lg border border-gray-200/80 dark:border-spotter-dark-700 p-3.5 z-10">
+      <div className="absolute top-4 left-6 bg-white/95 dark:bg-spotter-dark-900/95 backdrop-blur-md rounded-xl shadow-lg border border-gray-200/80 dark:border-spotter-dark-700 p-3.5 z-[1000]">
         <h3 className="font-semibold text-[10px] text-gray-800 dark:text-gray-200 mb-2 uppercase tracking-wider">
           Weather Risk Legend
         </h3>
@@ -423,7 +423,7 @@ export default function LeafletMapView({
       </div>
 
       {/* Fallback Notice */}
-      <div className="absolute top-4 right-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-lg px-3 py-2 z-10">
+      <div className="absolute top-4 right-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-lg px-3 py-2 z-[1000]">
         <p className="text-[10px] text-amber-800 dark:text-amber-300 font-medium">
           Using Leaflet fallback (WebGL unavailable)
         </p>
