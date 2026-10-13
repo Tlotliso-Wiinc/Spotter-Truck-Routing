@@ -224,19 +224,24 @@ export default function LeafletMapView({
         circle.bindPopup(popupContent)
         circle.addTo(map)
         checkpointLayersRef.current.push(circle)
+      })
+    }
 
-        // Weather heatmap circles (simplified for Leaflet)
-        if (showWeatherOverlay) {
-          const heatCircle = L.circleMarker([cp.coords.lat, cp.coords.lng], {
-            radius: 35,
-            fillColor: riskColor,
-            color: 'transparent',
-            weight: 0,
-            fillOpacity: 0.3
-          })
-          heatCircle.addTo(map)
-          checkpointLayersRef.current.push(heatCircle)
-        }
+    // Render weather overlay (independent of checkpoint markers)
+    if (checkpoints.length > 0 && showWeatherOverlay) {
+      checkpoints.forEach((cp: any) => {
+        const data = getCheckpointWeatherAtHour(cp, forecastHour)
+        const riskColor = getRiskColor(data.risk_level)
+
+        const heatCircle = L.circleMarker([cp.coords.lat, cp.coords.lng], {
+          radius: 20,
+          fillColor: riskColor,
+          color: 'transparent',
+          weight: 0,
+          fillOpacity: 0.3
+        })
+        heatCircle.addTo(map)
+        checkpointLayersRef.current.push(heatCircle)
       })
     }
 
