@@ -17,6 +17,7 @@ class CheckpointSerializer(serializers.Serializer):
     eta = serializers.DateTimeField()
     weather = serializers.DictField()
     risk_level = serializers.CharField()
+    hourly_forecast = serializers.ListField(child=serializers.DictField(), required=False)
 
 
 class RouteSerializer(serializers.Serializer):

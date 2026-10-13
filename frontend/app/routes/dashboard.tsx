@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Truck, Settings, Sun, Moon, AlertTriangle } from 'lucide-react'
+import { Truck, Sun, Moon, AlertTriangle } from 'lucide-react'
 import RoutePanel from '../components/RoutePanel'
 import MapView from '../components/MapView'
 import DetailsPanel from '../components/DetailsPanel'

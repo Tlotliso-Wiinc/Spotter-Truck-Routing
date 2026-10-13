@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
+import { Play, Pause, RotateCcw, Clock } from 'lucide-react'
 
 interface MapViewProps {
   routes: any[]
@@ -25,6 +26,12 @@ export default function MapView({
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const markersRef = useRef<mapboxgl.Marker[]>([])
   const popupRef = useRef<mapboxgl.Popup | null>(null)
+
+  // 0-48 Hour Forecast Slider State
+  // null = Dynamic ETA mode (conditions as truck arrives at each checkpoint)
+  // 0..47 = Fixed forecast hour offset across entire route
+  const [forecastHour, setForecastHour] = useState<number | null>(null)
+  const [isPlaying, setIsPlaying] = useState<boolean>(false)
 
   // Initialize Map
   useEffect(() => {
@@ -61,7 +68,6 @@ export default function MapView({
     const styleUrl = darkMode ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11'
 
     map.setStyle(styleUrl)
-    // Once the style is reloaded, re-trigger layer updates
     const onStyleLoad = () => {
       renderMapContent()
     }
@@ -71,6 +77,80 @@ export default function MapView({
       map.off('style.load', onStyleLoad)
     }
   }, [darkMode])
+
+  // Play/Pause auto-scrubbing animation for 0..47 hours
+  useEffect(() => {
+    if (!isPlaying) return
+
+    const timer = setInterval(() => {
+      setForecastHour(prev => {
+        if (prev === null) return 0
+        if (prev >= 47) return 0
+        return prev + 1
+      })
+    }, 650)
+
+    return () => clearInterval(timer)
+  }, [isPlaying])
+
+  // Helper to extract weather and risk data for a checkpoint at a given hour
+  const getCheckpointWeatherAtHour = (cp: any, hour: number | null) => {
+    if (hour === null || !cp.hourly_forecast || !cp.hourly_forecast[hour]) {
+      return {
+        risk_level: cp.risk_level || 'Low',
+        temperature: cp.weather?.temperature ?? 70,
+        wind_speed: cp.weather?.wind_speed ?? 10,
+        precipitation: cp.weather?.precipitation ?? 0,
+        time: cp.eta,
+        isEtaMode: true
+      }
+    }
+    const hData = cp.hourly_forecast[hour]
+    return {
+      risk_level: hData.risk_level || 'Low',
+      temperature: hData.temperature ?? 70,
+      wind_speed: hData.wind_speed ?? 10,
+      precipitation: hData.precipitation ?? 0,
+      time: hData.time,
+      isEtaMode: false
+    }
+  }
+
+  // Build GeoJSON features for checkpoints for current forecastHour
+  const buildCheckpointFeatures = (activeRoute: any, hour: number | null) => {
+    const checkpoints = activeRoute?.checkpoints || []
+    const riskScoreMap: Record<string, number> = {
+      'Low': 1,
+      'Moderate': 2,
+      'High': 3,
+      'Severe': 4,
+      'No Travel': 5
+    }
+
+    return checkpoints.map((cp: any, idx: number) => {
+      const data = getCheckpointWeatherAtHour(cp, hour)
+      return {
+        type: 'Feature' as const,
+        properties: {
+          id: idx,
+          location: cp.location,
+          distance_from_start: cp.distance_from_start,
+          eta: cp.eta,
+          time: data.time,
+          risk_level: data.risk_level,
+          risk_score: riskScoreMap[data.risk_level] || 1,
+          temperature: data.temperature,
+          wind_speed: data.wind_speed,
+          precipitation: data.precipitation,
+          is_eta_mode: data.isEtaMode
+        },
+        geometry: {
+          type: 'Point' as const,
+          coordinates: [cp.coords.lng, cp.coords.lat]
+        }
+      }
+    })
+  }
 
   // Function to render routes, checkpoints, and markers
   const renderMapContent = () => {
@@ -101,7 +181,7 @@ export default function MapView({
       }
     })
 
-    const sourcesToRemove = ['routes-source', 'checkpoints-source', 'heatmap-source']
+    const sourcesToRemove = ['routes-source', 'checkpoints-source']
     sourcesToRemove.forEach(sourceId => {
       if (map.getSource(sourceId)) {
         map.removeSource(sourceId)
@@ -138,7 +218,7 @@ export default function MapView({
       }
     })
 
-    // Layer for alternative routes (if showAlternatives is enabled)
+    // Layer for alternative routes
     if (showAlternatives) {
       map.addLayer({
         id: 'route-line-alternatives',
@@ -227,32 +307,7 @@ export default function MapView({
     // 4. Build Checkpoints GeoJSON for the active route
     const checkpoints = activeRoute.checkpoints || []
     if (checkpoints.length > 0) {
-      const riskScoreMap: Record<string, number> = {
-        'Low': 1,
-        'Moderate': 2,
-        'High': 3,
-        'Severe': 4,
-        'No Travel': 5
-      }
-
-      const checkpointFeatures = checkpoints.map((cp: any, idx: number) => ({
-        type: 'Feature' as const,
-        properties: {
-          id: idx,
-          location: cp.location,
-          distance_from_start: cp.distance_from_start,
-          eta: cp.eta,
-          risk_level: cp.risk_level || 'Low',
-          risk_score: riskScoreMap[cp.risk_level] || 1,
-          temperature: cp.weather?.temperature ?? 70,
-          wind_speed: cp.weather?.wind_speed ?? 10,
-          precipitation: cp.weather?.precipitation ?? 0
-        },
-        geometry: {
-          type: 'Point' as const,
-          coordinates: [cp.coords.lng, cp.coords.lat]
-        }
-      }))
+      const checkpointFeatures = buildCheckpointFeatures(activeRoute, forecastHour)
 
       map.addSource('checkpoints-source', {
         type: 'geojson',
@@ -326,14 +381,18 @@ export default function MapView({
           }
         })
 
-        // Popup on click/hover for checkpoint
+        // Popup on click for checkpoint
         map.on('click', 'checkpoints-point', (e) => {
           if (!e.features || !e.features[0]) return
           const feature = e.features[0] as any
           const props = feature.properties || {}
           const coordinates = (feature.geometry?.coordinates || []).slice()
 
-          const etaFormatted = props.eta ? new Date(props.eta).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' }) : 'N/A'
+          const timeFormatted = props.is_eta_mode
+            ? (props.eta ? new Date(props.eta).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' }) : 'N/A')
+            : (props.time ? new Date(props.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' }) : 'N/A')
+
+          const modeLabel = props.is_eta_mode ? 'Arrival ETA' : 'Forecast Time'
 
           const riskBadgeStyle =
             props.risk_level === 'Low' ? 'background: #dcfce7; color: #166534;' :
@@ -348,7 +407,7 @@ export default function MapView({
                 <span>${props.location}</span>
                 <span style="font-size: 11px; padding: 2px 6px; border-radius: 9999px; ${riskBadgeStyle}">${props.risk_level}</span>
               </div>
-              <div style="color: #64748b; font-size: 11px; margin-bottom: 6px;">ETA: ${etaFormatted}</div>
+              <div style="color: #64748b; font-size: 11px; margin-bottom: 6px;">${modeLabel}: ${timeFormatted}</div>
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: #f8fafc; padding: 6px; border-radius: 6px; font-size: 12px;">
                 <div>🌡️ ${Math.round(props.temperature)}°F</div>
                 <div>💨 ${Math.round(props.wind_speed)} mph</div>
@@ -426,7 +485,7 @@ export default function MapView({
       }
     }
 
-    // 8. Fit Bounds to active route or all routes
+    // 8. Fit Bounds to active route
     if (activeRoute.geometry && activeRoute.geometry.coordinates) {
       const bounds = new mapboxgl.LngLatBounds()
       activeRoute.geometry.coordinates.forEach((coord: [number, number]) => {
@@ -436,7 +495,24 @@ export default function MapView({
     }
   }
 
-  // Trigger render when routes, selectedRoute, or layer toggles change
+  // Fast update when forecastHour changes without tearing down map layers
+  useEffect(() => {
+    if (!mapRef.current || !mapRef.current.isStyleLoaded()) return
+    const map = mapRef.current
+    const source = map.getSource('checkpoints-source') as mapboxgl.GeoJSONSource
+    if (!source) return
+
+    const activeRoute = routes.find(r => r.route_id === selectedRoute) || routes[0]
+    if (activeRoute) {
+      const features = buildCheckpointFeatures(activeRoute, forecastHour)
+      source.setData({
+        type: 'FeatureCollection',
+        features
+      })
+    }
+  }, [forecastHour])
+
+  // Trigger full re-render when routes, selectedRoute, or layer toggles change
   useEffect(() => {
     if (!mapRef.current) return
     const map = mapRef.current
@@ -452,10 +528,102 @@ export default function MapView({
     }
   }, [routes, selectedRoute, showWeatherOverlay, showCheckpoints, showAlternatives])
 
+  // Helper to format slider timestamp
+  const getTimelineDateLabel = () => {
+    if (forecastHour === null) {
+      return 'Dynamic Truck Arrival ETAs'
+    }
+    const date = new Date()
+    date.setHours(date.getHours() + forecastHour)
+    return `${date.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })} at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} (+${forecastHour}h)`
+  }
+
   return (
     <div className="flex-1 relative h-full w-full">
       <div ref={mapContainer} className="w-full h-full" />
-      
+
+      {/* 0-48 Hour Forecast Corridor Slider */}
+      {routes.length > 0 && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-spotter-dark-900/95 backdrop-blur-md rounded-2xl shadow-xl border border-gray-200 dark:border-spotter-dark-700 px-5 py-3.5 z-10 w-[460px] max-w-[92vw]">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-spotter-blue-600" />
+              <span className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+                0–48h Weather Forecast Slider
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setForecastHour(null)}
+                className={`text-[11px] px-2.5 py-0.5 rounded-full font-medium transition-colors ${
+                  forecastHour === null
+                    ? 'bg-spotter-blue-600 text-white shadow-xs'
+                    : 'bg-gray-100 dark:bg-spotter-dark-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
+                }`}
+                title="Reset to dynamic arrival ETAs along route"
+              >
+                Route ETAs
+              </button>
+              {forecastHour !== null && (
+                <button
+                  onClick={() => setForecastHour(null)}
+                  className="p-1 text-gray-500 hover:text-gray-800 dark:hover:text-white transition-colors"
+                  title="Reset to ETA"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Timestamp readout */}
+          <div className="text-[11px] font-medium text-spotter-dark-600 dark:text-spotter-dark-300 mb-2 flex items-center justify-between">
+            <span className="truncate">{getTimelineDateLabel()}</span>
+            {forecastHour !== null && (
+              <span className="text-spotter-blue-600 font-semibold text-[11px] flex-shrink-0">
+                +{forecastHour} hrs
+              </span>
+            )}
+          </div>
+
+          {/* Slider and Play/Pause Controls */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                if (forecastHour === null) setForecastHour(0)
+                setIsPlaying(!isPlaying)
+              }}
+              className="p-2 rounded-lg bg-spotter-blue-600 hover:bg-spotter-blue-700 text-white shadow-xs transition-colors flex-shrink-0"
+              title={isPlaying ? 'Pause timeline' : 'Play 48h timeline'}
+            >
+              {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+            </button>
+
+            <div className="flex-1 flex flex-col justify-center">
+              <input
+                type="range"
+                min="0"
+                max="47"
+                step="1"
+                value={forecastHour ?? 0}
+                onChange={(e) => {
+                  setIsPlaying(false)
+                  setForecastHour(parseInt(e.target.value))
+                }}
+                className="w-full h-1.5 bg-gray-200 dark:bg-spotter-dark-700 rounded-lg appearance-none cursor-pointer accent-spotter-blue-600"
+              />
+              <div className="flex justify-between text-[10px] text-gray-600 dark:text-gray-400 mt-1 font-medium">
+                <span>0h (Now)</span>
+                <span>+12h</span>
+                <span>+24h</span>
+                <span>+36h</span>
+                <span>+48h</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Risk Level Legend */}
       <div className="absolute bottom-6 left-6 bg-white/95 dark:bg-spotter-dark-900/95 backdrop-blur-md rounded-xl shadow-lg border border-gray-200/80 dark:border-spotter-dark-700 p-3.5 z-10">
         <h3 className="font-semibold text-[10px] text-gray-800 dark:text-gray-200 mb-2 uppercase tracking-wider">

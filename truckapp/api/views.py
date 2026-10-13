@@ -63,11 +63,26 @@ class RoutePlanViewSet(viewsets.ViewSet):
                     checkpoint['coords'],
                     checkpoint['eta']
                 )
+                hourly_list = weather.pop('hourly', [])
                 checkpoint['weather'] = weather
                 checkpoint['risk_level'] = risk_engine.assess_risk(
                     weather,
                     load_weight
                 )
+                
+                # Compute risk level for each hour (0..48)
+                hourly_forecast = []
+                for item in hourly_list:
+                    h_risk = risk_engine.assess_risk(item, load_weight)
+                    hourly_forecast.append({
+                        'hour': item['hour'],
+                        'time': item['time'],
+                        'temperature': item['temperature'],
+                        'wind_speed': item['wind_speed'],
+                        'precipitation': item['precipitation'],
+                        'risk_level': h_risk
+                    })
+                checkpoint['hourly_forecast'] = hourly_forecast
                 return checkpoint
             
             logger.info(f"[ROUTE_PLAN] Processing weather and risk concurrently for {len(routes)} routes")
