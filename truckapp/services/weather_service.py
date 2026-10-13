@@ -1,11 +1,13 @@
 import requests
 from datetime import datetime
 from typing import Dict
+import time
 
 
 class WeatherService:
     def __init__(self):
         self.base_url = 'https://api.open-meteo.com/v1/forecast'
+        self.max_retries = 3
     
     def get_weather_at_checkpoint(self, coords: Dict, eta: datetime) -> Dict:
         """Get weather forecast for a checkpoint at the estimated arrival time"""
@@ -26,27 +28,36 @@ class WeatherService:
             'forecast_hours': hours_ahead + 1
         }
         
-        try:
-            response = requests.get(self.base_url, params=params)
-            response.raise_for_status()
-            data = response.json()
-            
-            hourly_data = data.get('hourly', {})
-            if hours_ahead < len(hourly_data.get('time', [])):
-                weather = {
-                    'temperature': hourly_data.get('temperature_2m', [])[hours_ahead],
-                    'wind_speed': hourly_data.get('windspeed_10m', [])[hours_ahead],
-                    'precipitation': hourly_data.get('precipitation', [])[hours_ahead],
-                    'time': hourly_data.get('time', [])[hours_ahead]
-                }
-                return weather
-        except requests.RequestException as e:
-            print(f"Error fetching weather: {e}")
+        # Retry logic with exponential backoff
+        for attempt in range(self.max_retries):
+            try:
+                response = requests.get(self.base_url, params=params, timeout=10)
+                response.raise_for_status()
+                data = response.json()
+                
+                hourly_data = data.get('hourly', {})
+                if hours_ahead < len(hourly_data.get('time', [])):
+                    weather = {
+                        'temperature': hourly_data.get('temperature_2m', [])[hours_ahead],
+                        'wind_speed': hourly_data.get('windspeed_10m', [])[hours_ahead],
+                        'precipitation': hourly_data.get('precipitation', [])[hours_ahead],
+                        'time': hourly_data.get('time', [])[hours_ahead],
+                        'source': 'api'
+                    }
+                    return weather
+            except requests.RequestException as e:
+                if attempt < self.max_retries - 1:
+                    wait_time = (2 ** attempt) * 1  # Exponential backoff: 1s, 2s, 4s
+                    time.sleep(wait_time)
+                else:
+                    # Log only on final failure
+                    print(f"Weather API unavailable after {self.max_retries} retries. Using default data for coords ({lat}, {lon})")
         
-        # Return default weather data if API fails
+        # Return default weather data if API fails after all retries
         return {
             'temperature': 70,
             'wind_speed': 10,
             'precipitation': 0,
-            'time': eta.isoformat()
+            'time': eta.isoformat(),
+            'source': 'default'
         }
