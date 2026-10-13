@@ -2,8 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
+* {
+  box-sizing: border-box;
+}
+
+html, body {
   margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+}
+
+body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
@@ -12,6 +24,21 @@ body {
 }
 
 #root {
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  max-width: 100vw;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Form controls must never force the layout wider than their container */
+input,
+select,
+textarea {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Leaflet maps must never expand beyond their parent column */
+.leaflet-container {
+  max-width: 100%;
 }

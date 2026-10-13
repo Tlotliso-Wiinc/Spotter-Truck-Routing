@@ -13,7 +13,7 @@ export default function DetailsPanel({ routes, selectedRoute }: DetailsPanelProp
 
   if (!selectedRouteData) {
     return (
-      <div className="w-96 bg-white dark:bg-spotter-dark-900 border-l border-spotter-teal dark:border-spotter-dark-700 p-6 flex items-center justify-center text-center">
+      <div className="w-96 max-w-96 min-w-0 bg-white dark:bg-spotter-dark-900 border-l border-spotter-teal dark:border-spotter-dark-700 p-6 flex items-center justify-center text-center overflow-x-hidden">
         <p className="text-sm text-spotter-dark-500 dark:text-spotter-dark-400">
           Search for a route or select an option to view details
         </p>
@@ -70,7 +70,7 @@ export default function DetailsPanel({ routes, selectedRoute }: DetailsPanelProp
   const riskCounts = selectedRouteData.risk_summary?.risk_counts || {}
 
   return (
-    <div className="w-96 bg-white dark:bg-spotter-dark-900 border-l border-spotter-teal dark:border-spotter-dark-700 flex flex-col overflow-y-auto">
+    <div className="w-96 max-w-96 min-w-0 bg-white dark:bg-spotter-dark-900 border-l border-spotter-teal dark:border-spotter-dark-700 flex flex-col overflow-y-auto overflow-x-hidden">
       {/* Tabs */}
       <div className="flex border-b border-gray-200 dark:border-spotter-dark-700">
         {(['details', 'weather', 'summary'] as const).map((tab) => (
@@ -94,8 +94,8 @@ export default function DetailsPanel({ routes, selectedRoute }: DetailsPanelProp
           <>
             {/* Header */}
             <div>
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+              <div className="flex items-center justify-between gap-2 min-w-0">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white truncate min-w-0">
                   {selectedRouteData.name}
                 </h2>
                 {selectedRouteData.is_recommended && (
@@ -185,15 +185,15 @@ export default function DetailsPanel({ routes, selectedRoute }: DetailsPanelProp
                 <span className="text-[11px] text-spotter-dark-400">Every ~25 miles</span>
               </div>
 
-              <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+              <div className="space-y-2 max-h-72 overflow-y-auto overflow-x-hidden pr-1">
                 {checkpoints.map((checkpoint: any, index: number) => (
                   <div
                     key={index}
                     className="bg-gray-50 dark:bg-spotter-dark-800 rounded-lg p-2.5 space-y-1.5 border border-gray-200 dark:border-spotter-dark-700 text-xs"
                   >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="font-semibold text-gray-900 dark:text-white">
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="min-w-0">
+                        <div className="font-semibold text-gray-900 dark:text-white truncate">
                           {checkpoint.location}
                         </div>
                         <div className="text-[11px] text-spotter-dark-500 dark:text-spotter-dark-400">
@@ -287,7 +287,7 @@ export default function DetailsPanel({ routes, selectedRoute }: DetailsPanelProp
               <h3 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">
                 Weather by Checkpoint
               </h3>
-              <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
+              <div className="space-y-1.5 max-h-60 overflow-y-auto overflow-x-hidden pr-1">
                 {checkpoints.map((cp: any, idx: number) => (
                   <div key={idx} className="flex justify-between items-center text-xs p-2 bg-gray-50 dark:bg-spotter-dark-800 rounded">
                     <span className="font-medium text-gray-800 dark:text-gray-200 truncate max-w-[120px]">

@@ -603,7 +603,7 @@ export default function MapView({
   }
 
   return (
-    <div className="flex-1 relative h-full w-full">
+    <div className="flex-1 relative h-full w-full overflow-hidden">
       {/* Use Leaflet fallback when WebGL is unavailable */}
       {mapError ? (
         <LeafletMapView
@@ -621,7 +621,7 @@ export default function MapView({
 
           {/* 0-48 Hour Forecast Corridor Slider */}
           {routes.length > 0 && (
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-spotter-dark-900/95 backdrop-blur-md rounded-2xl shadow-xl border border-gray-200 dark:border-spotter-dark-700 px-5 py-3.5 z-10 w-[460px] max-w-[92vw]">
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-spotter-dark-900/95 backdrop-blur-md rounded-2xl shadow-xl border border-gray-200 dark:border-spotter-dark-700 px-5 py-3.5 z-10 w-[460px] max-w-[calc(100%_-_1rem)]">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4 text-spotter-blue-600" />

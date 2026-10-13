@@ -137,25 +137,25 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col h-screen bg-white dark:bg-spotter-dark-900">
       {/* Header */}
-      <header className="bg-white dark:bg-spotter-dark-900 border-b border-gray-200 dark:border-spotter-dark-700 px-6 py-3.5 flex items-center justify-between shadow-xs">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-spotter-blue-50 dark:bg-spotter-blue-900/40 rounded-lg text-spotter-blue-600">
+      <header className="bg-white dark:bg-spotter-dark-900 border-b border-gray-200 dark:border-spotter-dark-700 px-6 py-3.5 flex items-center justify-between gap-4 shadow-xs">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="p-2 bg-spotter-blue-50 dark:bg-spotter-blue-900/40 rounded-lg text-spotter-blue-600 flex-shrink-0">
             <Truck className="w-6 h-6" />
           </div>
-          <div>
-            <h1 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">
+          <div className="min-w-0">
+            <h1 className="text-lg font-bold text-gray-900 dark:text-white leading-tight truncate">
               Spotter Truck Routing
             </h1>
-            <p className="text-xs text-spotter-dark-500 dark:text-spotter-dark-400">
+            <p className="text-xs text-spotter-dark-500 dark:text-spotter-dark-400 truncate">
               Weather-Aware & Weight-Optimized Route Intelligence
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           {errorMessage && (
-            <div className="flex items-center gap-2 text-xs text-rose-600 bg-rose-50 dark:bg-rose-950/40 px-3 py-1.5 rounded-lg border border-rose-200 dark:border-rose-900">
+            <div className="flex items-center gap-2 min-w-0 text-xs text-rose-600 bg-rose-50 dark:bg-rose-950/40 px-3 py-1.5 rounded-lg border border-rose-200 dark:border-rose-900">
               <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-              <span>{errorMessage}</span>
+              <span className="truncate">{errorMessage}</span>
             </div>
           )}
           <button
@@ -175,7 +175,7 @@ export default function Dashboard() {
       </header>
 
       {/* Main Content */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 w-full max-w-full overflow-hidden min-w-0">
         {/* Left Panel - Route Planning */}
         <RoutePanel
           onRouteSearch={handleRouteSearch}
@@ -192,15 +192,17 @@ export default function Dashboard() {
         />
 
         {/* Center - Interactive Map */}
-        <MapView
-          routes={routes}
-          selectedRoute={selectedRoute}
-          onSelectRoute={setSelectedRoute}
-          darkMode={darkMode}
-          showWeatherOverlay={showWeatherOverlay}
-          showCheckpoints={showCheckpoints}
-          showAlternatives={showAlternatives}
-        />
+        <div className="flex-1 min-w-0">
+          <MapView
+            routes={routes}
+            selectedRoute={selectedRoute}
+            onSelectRoute={setSelectedRoute}
+            darkMode={darkMode}
+            showWeatherOverlay={showWeatherOverlay}
+            showCheckpoints={showCheckpoints}
+            showAlternatives={showAlternatives}
+          />
+        </div>
 
         {/* Right Panel - Route Details, Weather & Summary */}
         <DetailsPanel
