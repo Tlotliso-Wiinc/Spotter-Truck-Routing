@@ -101,8 +101,9 @@ class WeatherService:
     def _fetch_batch_forecasts(self, keys: List[Tuple[float, float]]) -> None:
         """Fetch forecasts for multiple locations using Open-Meteo batch API."""
         # Open-Meteo allows up to 1000 locations per batch request
-        # Split into batches if needed
-        batch_size = 500
+        # Use smaller batch size (50) to avoid timeouts on slow connections
+        # Railway has 30s worker timeout, so we need fast requests
+        batch_size = 50
         for i in range(0, len(keys), batch_size):
             batch = keys[i:i + batch_size]
             self._fetch_single_batch(batch)
@@ -145,14 +146,17 @@ class WeatherService:
             'temperature_unit': 'fahrenheit',
         }
 
-        for attempt in range(self.max_retries):
+        # Use only 1 retry for batch requests to avoid timeout
+        batch_retries = 1
+        for attempt in range(batch_retries):
             self._throttle_before_request()
             logger.debug(
-                f"[WEATHER_SERVICE] Open-Meteo batch attempt {attempt + 1}/{self.max_retries} "
+                f"[WEATHER_SERVICE] Open-Meteo batch attempt {attempt + 1}/{batch_retries} "
                 f"for {len(keys)} locations"
             )
             try:
-                response = requests.get(self.base_url, params=params, timeout=30)
+                # Reduce timeout to 10s for batch requests
+                response = requests.get(self.base_url, params=params, timeout=10)
                 response.raise_for_status()
                 data = response.json()
                 self.stats['api_calls'] += 1
@@ -185,7 +189,7 @@ class WeatherService:
                     logger.debug(f"[WEATHER_SERVICE] Open-Meteo forecast received for {key}")
                     return True
             except requests.RequestException as e:
-                if attempt < self.max_retries - 1:
+                if attempt < batch_retries - 1:
                     wait_time = (2 ** attempt) * 1
                     logger.warning(
                         f"[WEATHER_SERVICE] Open-Meteo batch attempt {attempt + 1} failed: {e}. "
@@ -195,7 +199,7 @@ class WeatherService:
                 else:
                     logger.error(
                         f"[WEATHER_SERVICE] Open-Meteo batch unavailable after "
-                        f"{self.max_retries} retries for {len(keys)} locations"
+                        f"{batch_retries} retries for {len(keys)} locations"
                     )
         
         return False
@@ -214,14 +218,17 @@ class WeatherService:
         
         url = f"{VISUAL_CROSSING_BASE_URL}multi"
         
-        for attempt in range(self.max_retries):
+        # Use only 1 retry for batch requests to avoid timeout
+        batch_retries = 1
+        for attempt in range(batch_retries):
             self._throttle_before_request()
             logger.debug(
-                f"[WEATHER_SERVICE] Visual Crossing batch attempt {attempt + 1}/{self.max_retries} "
+                f"[WEATHER_SERVICE] Visual Crossing batch attempt {attempt + 1}/{batch_retries} "
                 f"for {len(keys)} locations"
             )
             try:
-                response = requests.get(url, params=params, timeout=30)
+                # Reduce timeout to 10s for batch requests
+                response = requests.get(url, params=params, timeout=10)
                 response.raise_for_status()
                 data = response.json()
                 self.stats['api_calls'] += 1
@@ -244,7 +251,7 @@ class WeatherService:
                 )
                 return True
             except requests.RequestException as e:
-                if attempt < self.max_retries - 1:
+                if attempt < batch_retries - 1:
                     wait_time = (2 ** attempt) * 1
                     logger.warning(
                         f"[WEATHER_SERVICE] Visual Crossing batch attempt {attempt + 1} failed: {e}. "
@@ -254,7 +261,7 @@ class WeatherService:
                 else:
                     logger.error(
                         f"[WEATHER_SERVICE] Visual Crossing batch unavailable after "
-                        f"{self.max_retries} retries for {len(keys)} locations"
+                        f"{batch_retries} retries for {len(keys)} locations"
                     )
         
         return False
