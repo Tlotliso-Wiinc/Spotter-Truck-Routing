@@ -145,18 +145,29 @@ The application uses the following risk thresholds (from spec):
 
 ## Weather API Fallback
 
-The application uses a two-tier weather API strategy for reliability:
+The application uses a multi-tier weather API strategy for reliability and performance:
 
-1. **Primary: Open-Meteo API** (free, no API key required)
-   - Used by default for all weather requests
-   - Supports batch requests for multiple locations
-   - No rate limiting concerns for typical usage
+### Batch Request Fallback Chain (for prefetching multiple locations)
+1. **Open-Meteo Batch API** (primary)
+   - Supports up to 1000 locations per request
+   - Free, no API key required
+   - Used by default for efficient bulk weather fetching
 
-2. **Fallback: Visual Crossing Weather API** (free tier: 1,000 records/day)
-   - Automatically used when Open-Meteo fails after retries
+2. **Visual Crossing Batch API** (secondary)
+   - Supports multiple locations via `/timelinemulti` endpoint
+   - Free tier: 1,000 records/day
+   - Automatically used when Open-Meteo batch fails after retries
    - Requires `VISUAL_CROSSING_API_KEY` in `.env` file
-   - Provides similar weather data (temperature, wind, precipitation)
-   - If both APIs fail, default weather values are used (70°F, 10 mph wind, 0 precipitation)
+
+3. **Individual API Requests** (tertiary)
+   - If both batch APIs fail, falls back to individual requests
+   - Tries Open-Meteo individual, then Visual Crossing individual
+   - Slower but more reliable as a last resort
+
+### Individual Request Fallback Chain (for single location)
+1. **Open-Meteo Individual API** (primary)
+2. **Visual Crossing Individual API** (fallback)
+3. **Default values** (final fallback) - 70°F, 10 mph wind, 0 precipitation
 
 The weather service tracks API usage in `weather_stats`:
 - `api_calls`: Total number of API calls made

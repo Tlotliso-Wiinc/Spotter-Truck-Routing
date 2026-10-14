@@ -108,7 +108,30 @@ class WeatherService:
             self._fetch_single_batch(batch)
 
     def _fetch_single_batch(self, keys: List[Tuple[float, float]]) -> None:
-        """Fetch a single batch of forecasts."""
+        """Fetch a single batch of forecasts using Open-Meteo, with Visual Crossing batch fallback."""
+        # Try Open-Meteo batch first
+        if self._fetch_open_meteo_batch(keys):
+            return
+        
+        # If Open-Meteo batch fails, try Visual Crossing batch
+        if VISUAL_CROSSING_API_KEY:
+            logger.info(
+                f"[WEATHER_SERVICE] Open-Meteo batch failed, trying Visual Crossing batch for {len(keys)} locations"
+            )
+            if self._fetch_visual_crossing_batch(keys):
+                return
+        
+        # If both batch APIs fail, fall back to individual requests
+        logger.warning(
+            f"[WEATHER_SERVICE] Both batch APIs failed, falling back to individual requests for {len(keys)} locations"
+        )
+        for key in keys:
+            forecast = self._fetch_forecast_from_api(key[0], key[1])
+            with self._cache_lock:
+                self._forecast_cache[key] = forecast
+
+    def _fetch_open_meteo_batch(self, keys: List[Tuple[float, float]]) -> bool:
+        """Fetch batch forecast from Open-Meteo. Returns True if successful."""
         lats = [key[0] for key in keys]
         lons = [key[1] for key in keys]
         
@@ -125,7 +148,7 @@ class WeatherService:
         for attempt in range(self.max_retries):
             self._throttle_before_request()
             logger.debug(
-                f"[WEATHER_SERVICE] Batch API attempt {attempt + 1}/{self.max_retries} "
+                f"[WEATHER_SERVICE] Open-Meteo batch attempt {attempt + 1}/{self.max_retries} "
                 f"for {len(keys)} locations"
             )
             try:
@@ -147,8 +170,9 @@ class WeatherService:
                                     'hourly': hourly_list
                                 }
                     logger.debug(
-                        f"[WEATHER_SERVICE] Batch forecast received for {len(keys)} locations"
+                        f"[WEATHER_SERVICE] Open-Meteo batch forecast received for {len(keys)} locations"
                     )
+                    return True
                 else:
                     # Single location response (fallback)
                     hourly_list = self._parse_hourly(data)
@@ -158,30 +182,82 @@ class WeatherService:
                             'source': 'api',
                             'hourly': hourly_list
                         }
-                    logger.debug(f"[WEATHER_SERVICE] Forecast received for {key}")
-                return
+                    logger.debug(f"[WEATHER_SERVICE] Open-Meteo forecast received for {key}")
+                    return True
             except requests.RequestException as e:
                 if attempt < self.max_retries - 1:
                     wait_time = (2 ** attempt) * 1
                     logger.warning(
-                        f"[WEATHER_SERVICE] Batch attempt {attempt + 1} failed: {e}. "
+                        f"[WEATHER_SERVICE] Open-Meteo batch attempt {attempt + 1} failed: {e}. "
                         f"Retrying in {wait_time}s..."
                     )
                     time.sleep(wait_time)
                 else:
                     logger.error(
-                        f"[WEATHER_SERVICE] Batch weather API unavailable after "
+                        f"[WEATHER_SERVICE] Open-Meteo batch unavailable after "
                         f"{self.max_retries} retries for {len(keys)} locations"
                     )
-                    # Fall back to individual requests for this batch
-                    logger.warning(
-                        f"[WEATHER_SERVICE] Falling back to individual requests for "
-                        f"{len(keys)} locations"
-                    )
-                    for key in keys:
-                        forecast = self._fetch_forecast_from_api(key[0], key[1])
+        
+        return False
+
+    def _fetch_visual_crossing_batch(self, keys: List[Tuple[float, float]]) -> bool:
+        """Fetch batch forecast from Visual Crossing. Returns True if successful."""
+        locations = '|'.join(f"{lat},{lon}" for lat, lon in keys)
+        
+        params = {
+            'key': VISUAL_CROSSING_API_KEY,
+            'locations': locations,
+            'contentType': 'json',
+            'include': 'hours',
+            'unitGroup': 'us',  # Fahrenheit, mph, inches
+        }
+        
+        url = f"{VISUAL_CROSSING_BASE_URL}multi"
+        
+        for attempt in range(self.max_retries):
+            self._throttle_before_request()
+            logger.debug(
+                f"[WEATHER_SERVICE] Visual Crossing batch attempt {attempt + 1}/{self.max_retries} "
+                f"for {len(keys)} locations"
+            )
+            try:
+                response = requests.get(url, params=params, timeout=30)
+                response.raise_for_status()
+                data = response.json()
+                self.stats['api_calls'] += 1
+                self.stats['visual_crossing_calls'] += 1
+                
+                # Visual Crossing batch response has a 'locations' array
+                locations_data = data.get('locations', [])
+                for idx, location_data in enumerate(locations_data):
+                    if idx < len(keys):
+                        key = keys[idx]
+                        hourly_list = self._parse_visual_crossing_hourly(location_data)
                         with self._cache_lock:
-                            self._forecast_cache[key] = forecast
+                            self._forecast_cache[key] = {
+                                'source': 'visual_crossing',
+                                'hourly': hourly_list
+                            }
+                
+                logger.debug(
+                    f"[WEATHER_SERVICE] Visual Crossing batch forecast received for {len(keys)} locations"
+                )
+                return True
+            except requests.RequestException as e:
+                if attempt < self.max_retries - 1:
+                    wait_time = (2 ** attempt) * 1
+                    logger.warning(
+                        f"[WEATHER_SERVICE] Visual Crossing batch attempt {attempt + 1} failed: {e}. "
+                        f"Retrying in {wait_time}s..."
+                    )
+                    time.sleep(wait_time)
+                else:
+                    logger.error(
+                        f"[WEATHER_SERVICE] Visual Crossing batch unavailable after "
+                        f"{self.max_retries} retries for {len(keys)} locations"
+                    )
+        
+        return False
 
     def _fetch_forecast_from_api(self, lat: float, lon: float) -> Dict:
         # Try Open-Meteo first

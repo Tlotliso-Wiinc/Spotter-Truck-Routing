@@ -169,8 +169,8 @@ class WeatherServiceCacheTests(TestCase):
             self.assertEqual(mock_get.call_count, 1)
             self.assertEqual(service.stats['cache_hits'], 2)
 
-    def test_visual_crossing_fallback(self):
-        """Test that Visual Crossing API is used as fallback when Open-Meteo fails."""
+    def test_visual_crossing_batch_fallback(self):
+        """Test that Visual Crossing batch API is used as fallback when Open-Meteo batch fails."""
         # Set a fake API key for testing
         with patch.dict(os.environ, {'VISUAL_CROSSING_API_KEY': 'test_key'}, clear=False):
             # Reload the module to pick up the new env var
@@ -180,24 +180,42 @@ class WeatherServiceCacheTests(TestCase):
             
             service = weather_module.WeatherService()
             
-            # Mock Open-Meteo to fail with RequestException
+            # Mock Open-Meteo batch to fail
             open_meteo_response = MagicMock()
             open_meteo_response.raise_for_status.side_effect = requests.RequestException("Open-Meteo failed")
             
-            # Mock Visual Crossing to succeed
+            # Mock Visual Crossing batch to succeed
             visual_crossing_response = MagicMock()
             visual_crossing_response.raise_for_status = MagicMock()
             visual_crossing_response.json.return_value = {
-                'days': [
+                'locations': [
                     {
-                        'hours': [
+                        'days': [
                             {
-                                'datetime': '2026-01-01T00:00',
-                                'temp': 65.0,
-                                'windspeed': 20.0,
-                                'precip': 0.0,
+                                'hours': [
+                                    {
+                                        'datetime': '2026-01-01T00:00',
+                                        'temp': 65.0,
+                                        'windspeed': 20.0,
+                                        'precip': 0.0,
+                                    }
+                                ] * 48
                             }
-                        ] * 48
+                        ]
+                    },
+                    {
+                        'days': [
+                            {
+                                'hours': [
+                                    {
+                                        'datetime': '2026-01-01T00:00',
+                                        'temp': 64.0,
+                                        'windspeed': 18.0,
+                                        'precip': 0.1,
+                                    }
+                                ] * 48
+                            }
+                        ]
                     }
                 ]
             }
@@ -212,13 +230,16 @@ class WeatherServiceCacheTests(TestCase):
                     return visual_crossing_response
                 return MagicMock()
             
+            keys = [(41.87, -87.76), (41.88, -87.77)]
+            
             with patch('truckapp.services.weather_service.requests.get', side_effect=mock_get):
-                forecast = service._fetch_forecast_from_api(41.87, -87.76)
+                service._fetch_single_batch(keys)
                 
-                # Should have called both APIs (Open-Meteo failed, Visual Crossing succeeded)
+                # Should have called both batch APIs (Open-Meteo failed, Visual Crossing succeeded)
                 self.assertGreater(call_count[0], 1)
-                self.assertEqual(forecast['source'], 'visual_crossing')
                 self.assertEqual(service.stats['visual_crossing_calls'], 1)
+                # Check that both locations were cached
+                self.assertEqual(len(service._forecast_cache), 2)
 
     def test_visual_crossing_parsing(self):
         """Test Visual Crossing response parsing."""
@@ -256,6 +277,65 @@ class WeatherServiceCacheTests(TestCase):
         self.assertEqual(hourly[1]['temperature'], 64.0)
         # Remaining hours should be defaults
         self.assertEqual(hourly[2]['temperature'], 70.0)
+
+    def test_batch_fallback_to_individual(self):
+        """Test that individual requests are used when both batch APIs fail."""
+        # Set a fake API key for testing
+        with patch.dict(os.environ, {'VISUAL_CROSSING_API_KEY': 'test_key'}, clear=False):
+            # Reload the module to pick up the new env var
+            from importlib import reload
+            import truckapp.services.weather_service as weather_module
+            reload(weather_module)
+            
+            service = weather_module.WeatherService()
+            
+            # Mock both batch APIs to fail
+            open_meteo_response = MagicMock()
+            open_meteo_response.raise_for_status.side_effect = requests.RequestException("Open-Meteo failed")
+            
+            visual_crossing_response = MagicMock()
+            visual_crossing_response.raise_for_status.side_effect = requests.RequestException("Visual Crossing failed")
+            
+            # Mock individual Visual Crossing to succeed
+            visual_crossing_individual_response = MagicMock()
+            visual_crossing_individual_response.raise_for_status = MagicMock()
+            visual_crossing_individual_response.json.return_value = {
+                'days': [
+                    {
+                        'hours': [
+                            {
+                                'datetime': '2026-01-01T00:00',
+                                'temp': 65.0,
+                                'windspeed': 20.0,
+                                'precip': 0.0,
+                            }
+                        ] * 48
+                    }
+                ]
+            }
+            
+            call_count = [0]
+            
+            def mock_get(url, **kwargs):
+                call_count[0] += 1
+                if 'open-meteo.com' in url:
+                    return open_meteo_response
+                elif 'visualcrossing.com' in url:
+                    if 'multi' in url:
+                        return visual_crossing_response  # Batch fails
+                    else:
+                        return visual_crossing_individual_response  # Individual succeeds
+                return MagicMock()
+            
+            keys = [(41.87, -87.76)]
+            
+            with patch('truckapp.services.weather_service.requests.get', side_effect=mock_get):
+                service._fetch_single_batch(keys)
+                
+                # Should have tried batch APIs then individual
+                self.assertGreater(call_count[0], 2)
+                # Check that the location was cached
+                self.assertEqual(len(service._forecast_cache), 1)
 
 
 class APIEndpointsTests(TestCase):
