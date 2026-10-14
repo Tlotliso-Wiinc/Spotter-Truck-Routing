@@ -28,6 +28,7 @@ export default function Dashboard() {
   const [routes, setRoutes] = useState<RouteData[]>([])
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [weatherWarning, setWeatherWarning] = useState<string | null>(null)
 
   // Map layer toggle states
   const [showWeatherOverlay, setShowWeatherOverlay] = useState(true)
@@ -70,6 +71,7 @@ export default function Dashboard() {
   ) => {
     setLoading(true)
     setErrorMessage(null)
+    setWeatherWarning(null)
     try {
       // 1. Geocode origin & destination in frontend if possible
       const originCoords = await geocodeAddress(origin)
@@ -107,6 +109,11 @@ export default function Dashboard() {
       }
 
       const data = await response.json()
+      if (data.weather_data_degraded) {
+        setWeatherWarning(
+          'Live weather was partially unavailable; risk scores may use estimated defaults for some segments.'
+        )
+      }
       if (data.routes && data.routes.length > 0) {
         setRoutes(data.routes)
         if (data.recommended_route_id) {
@@ -152,6 +159,12 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="flex items-center gap-3 min-w-0">
+          {weatherWarning && (
+            <div className="flex items-center gap-2 min-w-0 text-xs text-amber-700 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/40 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate">{weatherWarning}</span>
+            </div>
+          )}
           {errorMessage && (
             <div className="flex items-center gap-2 min-w-0 text-xs text-rose-600 bg-rose-50 dark:bg-rose-950/40 px-3 py-1.5 rounded-lg border border-rose-200 dark:border-rose-900">
               <AlertTriangle className="w-4 h-4 flex-shrink-0" />

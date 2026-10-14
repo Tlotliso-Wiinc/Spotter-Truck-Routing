@@ -58,6 +58,17 @@ class RoutePlanViewSet(viewsets.ViewSet):
                     status=status.HTTP_404_NOT_FOUND
                 )
             
+            all_coords = []
+            route_checkpoints = []
+            for route in routes:
+                checkpoints = route_service.generate_checkpoints(
+                    route, departure_time=departure_time
+                )
+                route_checkpoints.append(checkpoints)
+                all_coords.extend(cp['coords'] for cp in checkpoints)
+
+            weather_service.prefetch_locations(all_coords)
+
             def process_checkpoint(checkpoint):
                 weather = weather_service.get_weather_at_checkpoint(
                     checkpoint['coords'],
@@ -69,8 +80,7 @@ class RoutePlanViewSet(viewsets.ViewSet):
                     weather,
                     load_weight
                 )
-                
-                # Compute risk level for each hour (0..48)
+
                 hourly_forecast = []
                 for item in hourly_list:
                     h_risk = risk_engine.assess_risk(item, load_weight)
@@ -84,26 +94,34 @@ class RoutePlanViewSet(viewsets.ViewSet):
                     })
                 checkpoint['hourly_forecast'] = hourly_forecast
                 return checkpoint
-            
-            logger.info(f"[ROUTE_PLAN] Processing weather and risk concurrently for {len(routes)} routes")
-            with ThreadPoolExecutor(max_workers=12) as executor:
+
+            logger.info(
+                f"[ROUTE_PLAN] Processing risk for {len(routes)} routes "
+                f"(weather stats: {weather_service.stats})"
+            )
+            with ThreadPoolExecutor(max_workers=8) as executor:
                 for idx, route in enumerate(routes):
-                    checkpoints = route_service.generate_checkpoints(route, departure_time=departure_time)
-                    # Process checkpoints concurrently
+                    checkpoints = route_checkpoints[idx]
                     list(executor.map(process_checkpoint, checkpoints))
                     route['checkpoints'] = checkpoints
                     route['risk_summary'] = risk_engine.calculate_route_risk_summary(
                         checkpoints,
                         load_weight
                     )
-                    logger.info(f"[ROUTE_PLAN] Route {route.get('name')} risk summary: {route['risk_summary']['overall_risk']}")
+                    logger.info(
+                        f"[ROUTE_PLAN] Route {route.get('name')} risk summary: "
+                        f"{route['risk_summary']['overall_risk']}"
+                    )
             
             # Recommend best route
             recommended_route = recommendation_engine.recommend_route(routes)
             
+            weather_degraded = weather_service.stats['fallback_locations'] > 0
             response_data = {
                 'routes': routes,
-                'recommended_route_id': recommended_route['route_id'] if recommended_route else (routes[0]['route_id'] if routes else None)
+                'recommended_route_id': recommended_route['route_id'] if recommended_route else (routes[0]['route_id'] if routes else None),
+                'weather_data_degraded': weather_degraded,
+                'weather_stats': dict(weather_service.stats),
             }
             
             logger.info("[ROUTE_PLAN] Route plan completed successfully")

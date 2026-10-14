@@ -4,6 +4,8 @@ from rest_framework.test import APIClient
 from truckapp.services.risk_engine import RiskEngine
 from truckapp.services.recommendation_engine import RecommendationEngine
 from truckapp.services.route_service import RouteService
+from truckapp.services.weather_service import WeatherService
+from unittest.mock import patch, MagicMock
 
 
 class RiskEngineTests(TestCase):
@@ -135,6 +137,32 @@ class RouteServiceCheckpointTests(TestCase):
         # Last checkpoint ETA must be departure time + route duration (2 hours)
         expected_arrival = dep_time + timedelta(hours=2.0)
         self.assertEqual(checkpoints[-1]['eta'], expected_arrival)
+
+
+class WeatherServiceCacheTests(TestCase):
+    def test_prefetch_deduplicates_nearby_coords(self):
+        service = WeatherService()
+        mock_response = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+        mock_response.json.return_value = {
+            'hourly': {
+                'time': ['2026-01-01T00:00'] * 48,
+                'temperature_2m': [65.0] * 48,
+                'windspeed_10m': [20.0] * 48,
+                'precipitation': [0.0] * 48,
+            }
+        }
+        coords = [
+            {'lat': 41.871111, 'lng': -87.759444},
+            {'lat': 41.871119, 'lng': -87.759431},
+        ]
+        with patch('truckapp.services.weather_service.requests.get', return_value=mock_response) as mock_get:
+            service.prefetch_locations(coords)
+            self.assertEqual(mock_get.call_count, 1)
+            service.get_weather_at_checkpoint(coords[0], datetime(2026, 1, 1, 3, tzinfo=timezone.utc))
+            service.get_weather_at_checkpoint(coords[1], datetime(2026, 1, 1, 5, tzinfo=timezone.utc))
+            self.assertEqual(mock_get.call_count, 1)
+            self.assertEqual(service.stats['cache_hits'], 2)
 
 
 class APIEndpointsTests(TestCase):

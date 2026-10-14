@@ -34,3 +34,5 @@ class RouteSerializer(serializers.Serializer):
 class RoutePlanSerializer(serializers.Serializer):
     routes = RouteSerializer(many=True)
     recommended_route_id = serializers.CharField(allow_null=True)
+    weather_data_degraded = serializers.BooleanField(required=False, default=False)
+    weather_stats = serializers.DictField(required=False)
