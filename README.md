@@ -16,7 +16,7 @@ A React + TypeScript + Django web application that helps truck drivers choose th
 ### Backend (Django)
 - **Django REST Framework**: API endpoints for route planning
 - **Route Service**: Integration with Mapbox Directions API
-- **Weather Service**: Integration with Open-Meteo Forecast API
+- **Weather Service**: Integration with Open-Meteo Forecast API (primary) with Visual Crossing Weather API fallback
 - **Risk Engine**: Weather risk assessment based on spec thresholds
 - **Recommendation Engine**: Route recommendation logic
 
@@ -32,6 +32,7 @@ A React + TypeScript + Django web application that helps truck drivers choose th
 - Python 3.12+
 - Node.js 18+
 - Mapbox Access Token (free at [mapbox.com](https://www.mapbox.com/))
+- Visual Crossing API Key (optional, free at [visualcrossing.com](https://www.visualcrossing.com/)) - used as fallback when Open-Meteo fails
 
 ### Backend Setup
 
@@ -52,13 +53,14 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Edit `.env` and add your Mapbox Access Token:
+Edit `.env` and add your Mapbox Access Token (and optionally Visual Crossing API key):
 ```
 SECRET_KEY=django-insecure-change-this-in-production
 DEBUG=True
 ALLOWED_HOSTS=localhost,127.0.0.1
 CORS_ALLOWED_ORIGINS=http://localhost:5173
 MAPBOX_ACCESS_TOKEN=your_mapbox_access_token_here
+VISUAL_CROSSING_API_KEY=your_visual_crossing_api_key_here  # Optional
 ```
 
 4. **Run migrations**:
@@ -140,6 +142,27 @@ The application uses the following risk thresholds (from spec):
 - ≥55 mph → No Travel for any load
 - 45-54 mph + >30,000 lb → No Travel
 - 35-44 mph + >40,000 lb → Severe
+
+## Weather API Fallback
+
+The application uses a two-tier weather API strategy for reliability:
+
+1. **Primary: Open-Meteo API** (free, no API key required)
+   - Used by default for all weather requests
+   - Supports batch requests for multiple locations
+   - No rate limiting concerns for typical usage
+
+2. **Fallback: Visual Crossing Weather API** (free tier: 1,000 records/day)
+   - Automatically used when Open-Meteo fails after retries
+   - Requires `VISUAL_CROSSING_API_KEY` in `.env` file
+   - Provides similar weather data (temperature, wind, precipitation)
+   - If both APIs fail, default weather values are used (70°F, 10 mph wind, 0 precipitation)
+
+The weather service tracks API usage in `weather_stats`:
+- `api_calls`: Total number of API calls made
+- `cache_hits`: Number of requests served from cache
+- `fallback_locations`: Number of locations using default weather data
+- `visual_crossing_calls`: Number of calls to Visual Crossing API
 
 ## Route Recommendation
 
